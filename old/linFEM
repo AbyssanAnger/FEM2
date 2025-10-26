@@ -8,15 +8,15 @@ import time as timemodule
 torch.set_default_dtype(torch.float64)
 torch.set_num_threads(4)
 
-disp_scaling = 1000
-toplot = True
+disp_scaling = 1000  # skalierung der Verformung
+toplot = True  # Einschalten der Plots
 
-tdm = 2
+tdm = 2  # tensor Dimensionen
 
 
 def analysis():
-    E = 79308.361e6
-    nu = 0.3
+    E = 79308.361e6  # elasticity Module
+    nu = 0.3  # poisson number
 
     ndf = 2
     ndm = 2
