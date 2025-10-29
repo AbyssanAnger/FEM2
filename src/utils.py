@@ -3,6 +3,10 @@ import torch
 import numpy as np
 
 
+def plot_geometrie():
+    a = a
+
+
 def plot_results(solver, disp_scaling=1000):
     """
     Erstellt Plots für FEM-Ergebnisse: Undeformiert, Deformiert, Spannungen.
