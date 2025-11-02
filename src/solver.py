@@ -4,7 +4,7 @@ from config import TOPLOT  # Für Plot-Flag
 from .mesh import Mesh
 from .material import IsotropicMaterial
 from .elements import gauss_quadrature, master_element
-from .utils import plot_results
+from .utils import plot_beam, plot_results
 
 
 class FEMSolver:
@@ -17,8 +17,8 @@ class FEMSolver:
         self.ndm = 2
         self.nen = 4
         self.tdm = 2
-        self.qpt, self.w8 = gauss_quadrature()
-        self.N, self.gamma = master_element(self.qpt)
+        self.qpt, self.w8 = gauss_quadrature()  # Bereits Float64
+        self.N, self.gamma = master_element(self.qpt)  # Bereits Float64, Listen-frei
         self.nqp = self.qpt.shape[0]  # Neu: Für konsistente Loops
 
         # Initialisiere nach Setup (wird in run() gesetzt)
@@ -32,7 +32,8 @@ class FEMSolver:
 
     def assemble(self):
         """Montiert globale Steifigkeitsmatrix K und Kräftevektor F."""
-        self.u = torch.zeros(self.ndf * self.nnp, 1)
+        dtype = torch.float64  # Explizit Double Precision (Float64) für alle Tensoren
+        self.u = torch.zeros(self.ndf * self.nnp, 1, dtype=dtype)
 
         # DOF-Mapping
         edof = torch.zeros(self.nel, self.ndf, self.nen, dtype=torch.long)
@@ -47,29 +48,31 @@ class FEMSolver:
         self.gdof = gdof  # Speichere für spätere Nutzung
 
         # Initialisieren
-        Ke = torch.zeros(self.nen * self.ndf, self.nen * self.ndf)
-        K = torch.zeros(self.nnp * self.ndf, self.nnp * self.ndf)
-        finte = torch.zeros(self.nen * self.ndf, 1)
-        fint = torch.zeros(self.ndf * self.nnp, 1)
+        Ke = torch.zeros(self.nen * self.ndf, self.nen * self.ndf, dtype=dtype)
+        K = torch.zeros(self.nnp * self.ndf, self.nnp * self.ndf, dtype=dtype)
+        finte = torch.zeros(self.nen * self.ndf, 1, dtype=dtype)
+        fint = torch.zeros(self.ndf * self.nnp, 1, dtype=dtype)
 
-        ei = torch.eye(self.ndm)
-        h = torch.zeros(self.tdm, self.tdm)
+        ei = torch.eye(self.ndm, dtype=dtype)
+        h = torch.zeros(self.tdm, self.tdm, dtype=dtype)
 
         for el in range(self.nel):
-            xe = self.mesh.x[self.mesh.elems[el]].t()  # (ndm, nen) = (2,4)
+
+            xe = (
+                self.mesh.x[self.mesh.elems[el]].t().double()
+            )  # (ndm, nen) = (2,4), explizit zu Float64
             local_dofs = edof[el].flatten()  # Neu: Flatten für sichere Indizierung (8,)
-            ue_vec = self.u[local_dofs]  # (8,1)
+            ue_vec = self.u[local_dofs]  # (8,1), Float64
             ue = ue_vec.view(self.ndm, self.nen)  # Fix: (2,4) – DOFs als (ndm, nen)
 
             Ke.zero_()
             finte.zero_()
             for q in range(self.nqp):
                 N = self.N[q]
-                gamma = self.gamma[q]  # (4,2)
+                gamma = self.gamma[q]  # (4,2) – jetzt Float64
 
-                # Fix: Kein .t() – (2,4) @ (4,2) = (2,2)
+                # Fix: Kein .t() – (2,4) @ (4,2) = (2,2), beide Float64
                 Je = xe @ gamma
-                detJe = torch.det(Je)
                 detJe = torch.det(Je)
                 print(
                     f"Debug Element {el}, QP {q}: detJe = {detJe:.6f}, Je = {Je}"
@@ -139,5 +142,3 @@ class FEMSolver:
         self.mesh.setup_bcs(drlt, neum)
         self.assemble()
         self.solve()
-        if TOPLOT:
-            plot_results(self)

@@ -13,7 +13,7 @@ class IsotropicMaterial:
 
     def _build_stiffness_tensor(self):
         tdm = 2
-        C4 = torch.zeros(tdm, tdm, tdm, tdm)
+        C4 = torch.zeros(tdm, tdm, tdm, tdm, dtype=torch.float64)
         C4[0, 0, 0, 0] = 1
         C4[1, 1, 1, 1] = 1
         C4[1, 1, 0, 0] = self.nu

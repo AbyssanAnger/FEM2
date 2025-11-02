@@ -2,9 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def generate_beam(l, b, h, nx=2, ny=2, force=50000):
+def create_geometry(l, b, h, nx=2, ny=2):
     """
-    Generiert ein rechteckiges 2D-FEM-Mesh für einen Balken.
+    Generiert die Geometrie eines rechteckigen 2D-FEM-Meshs für einen Balken.
 
     Parameter:
     - l: Länge in x-Richtung
@@ -14,10 +14,8 @@ def generate_beam(l, b, h, nx=2, ny=2, force=50000):
     - ny: Anzahl Elemente in y-Richtung (Standard: 2)
 
     Returns:
-    - x_coords: Knoten-Koordinaten (N x 2)
+    - coords: Knoten-Koordinaten (N x 2)
     - elems: Element-Konnektivitäten (M x 4, für quadratische Elemente)
-    - drlt: Dirichlet-BCs [Knoten-ID, DOF, Wert] (linke Seite fixiert in x)
-    - neum: Neumann-BCs [Knoten-ID, DOF, Wert] (rechte Seite Last in y)
     """
     # Knoten generieren: (nx+1) x (ny+1) Gitter
     n_nodes_x = nx + 1
@@ -25,7 +23,7 @@ def generate_beam(l, b, h, nx=2, ny=2, force=50000):
     x = np.linspace(0, l, n_nodes_x)
     y = np.linspace(0, b, n_nodes_y)
     X, Y = np.meshgrid(x, y)
-    x_coords = np.column_stack(
+    coords = np.column_stack(
         (X.ravel(), Y.ravel())
     )  # Flach: [y0x0, y0x1, ..., yNy xNx]
 
@@ -33,12 +31,34 @@ def generate_beam(l, b, h, nx=2, ny=2, force=50000):
     elems = []
     for i in range(ny):
         for j in range(nx):
-            n1 = i * n_nodes_x + j  # Unter links
-            n2 = i * n_nodes_x + (j + 1)  # Unter rechts
-            n3 = (i + 1) * n_nodes_x + (j + 1)  # Ober rechts
-            n4 = (i + 1) * n_nodes_x + j  # Ober links
+            n1 = i * n_nodes_x + j  # Unten links
+            n2 = i * n_nodes_x + (j + 1)  # Unten rechts
+            n3 = (i + 1) * n_nodes_x + (j + 1)  # Oben rechts
+            n4 = (i + 1) * n_nodes_x + j  # Oben links
             elems.append([n1, n2, n3, n4])
     elems = np.array(elems)
+
+    return coords, elems
+
+
+def create_boundary_conditions(l, b, nx=2, ny=2, force=50000):
+    """
+    Generiert die Randbedingungen für das rechteckige 2D-FEM-Mesh eines Balkens.
+
+    Parameter:
+    - l: Länge in x-Richtung
+    - b: Breite in y-Richtung
+    - nx: Anzahl Elemente in x-Richtung (Standard: 2)
+    - ny: Anzahl Elemente in y-Richtung (Standard: 2)
+    - force: Basislast (Standard: 50000)
+
+    Returns:
+    - drlt: Dirichlet-BCs [Knoten-ID, DOF, Wert] (linke Seite fixiert in x)
+    - neum: Neumann-BCs [Knoten-ID, DOF, Wert] (rechte Seite Last in y)
+    """
+    # Anzahl Knoten berechnen (benötigt für Knoten-IDs)
+    n_nodes_x = nx + 1
+    n_nodes_y = ny + 1
 
     # Dirichlet-BCs: Alle Knoten an linker Seite (x=0, d.h. j=0) fixiert in DOF=0 (x-Versatz=0)
     drlt = []
@@ -53,7 +73,7 @@ def generate_beam(l, b, h, nx=2, ny=2, force=50000):
     # Originalwerte: 5e6, 1e7, 5e6 – hier skaliert und gleichmäßig über ny+1 Knoten verteilt (z.B. linear)
     right_nodes = np.arange(nx, n_nodes_y * n_nodes_x, n_nodes_x)  # Knoten-IDs an x=l
     # Beispiel: Lineare Verteilung der Last (von niedrig zu hoch zu niedrig, skaliert mit b)
-    base_load = force  # Basiswert, skaliert mit b/h falls gewünscht
+    base_load = force  # MPa
     loads = (
         base_load * np.array([1, 2, 1])[: len(right_nodes)] * (b / 2)
     )  # Anpassen an ny
@@ -61,11 +81,19 @@ def generate_beam(l, b, h, nx=2, ny=2, force=50000):
         loads = np.tile(loads, (len(right_nodes) // len(loads) + 1))[: len(right_nodes)]
     neum = np.column_stack((right_nodes, np.ones(len(right_nodes)), loads))
 
-    return x_coords, elems, drlt, neum
+    return drlt, neum
 
 
 def plot_beam(
-    coords, elems, drlt, neum, l=None, b=None, nx=None, ny=None, figsize=(10, 4)
+    coords,
+    elems,
+    drlt,
+    neum,
+    l=None,
+    b=None,
+    nx=None,
+    ny=None,
+    figsize=(10, 4),
 ):
     """
     Plottet das FEM-Mesh eines Balkens.
@@ -168,7 +196,11 @@ def plot_beam(
 
 
 # Beispiel-Aufruf: Langer, schmaler Balken (sollte jetzt proportional skaliert plotten)
-coords, elems, drlt, neum = generate_beam(l=2, b=0.05, h=20, nx=5, ny=5)
-plot_beam(
-    coords, elems, drlt, neum, l=2, b=0.05, nx=5, ny=5, figsize=(12, 1)
-)  # figsize angepasst für schmalen Plot
+# coords, elems = create_geometry(l=2, b=0.5, h=20, nx=5, ny=5)
+# drlt, neum = create_boundary_conditions(l=2, b=0.5, nx=5, ny=5, force=10000)
+
+# plot_beam(
+#     coords, elems, drlt, neum, l=2, b=0.5, nx=5, ny=5, figsize=(12, 1)
+# )  # figsize angepasst für schmalen Plot
+
+# print(coords, elems, drlt, neum)
