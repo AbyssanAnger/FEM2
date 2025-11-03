@@ -236,15 +236,15 @@ def plot_results(solver, disp_scaling=50):
         "bo-",
         label="FEM Ergebnis",
     )
-    # Analytical curve at mid-span (using end force convention from original)
+    # Analytical curve at mid-span (using exact same formula as original: M_z = 1000.0 * (L - x))
     y_analytical, sigma_analytical = analytical_sigma_xx_midspan(
         height=float(HEIGHT),
         width=float(WIDTH),
         length=float(LENGTH),
-        total_end_force=float(abs(TOTAL_FORCE)),
+        mid_point_x=float(closest_x),
     )
     ax8.plot(
-        (sigma_analytical / 1e6).detach().cpu().numpy(),
+        sigma_analytical.detach().cpu().numpy(),
         y_analytical.detach().cpu().numpy(),
         "r--",
         label="Analytische Lösung",
