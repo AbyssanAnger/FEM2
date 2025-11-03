@@ -1,17 +1,31 @@
-# Material- und Plot-Parameter
-E = 79308.361e6  # Elastizitätsmodul [Pa]
-NU = 0.3  # Poisson-Zahl
+import torch
 
-# Balkengeometrie
-l = 2  # m
-b = 0.05
-h = 0.5
-nx = 100
-ny = 8
-force = 50  # MPa
-y_size = 15
-x_size = 1
+# Threading and dtype
+DEFAULT_DTYPE = torch.float64
+TORCH_THREADS = 4
+torch.set_default_dtype(DEFAULT_DTYPE)
+torch.set_num_threads(TORCH_THREADS)
 
+# Problem parameters
+E = 210e9
+NU = 0.3
+TDM = 2
+NDF = 2
+NDM = 2
+NEN = 4
+NQP = 4
 
-DISP_SCALING = 1000  # Skalierung der Verformung für den Plot
-TOPLOT = False  # Plot Darstellung
+# Geometry
+LENGTH = 2.0
+HEIGHT = 0.05
+WIDTH = 0.05
+NX = 120
+NY = 10
+
+# Loads / BCs
+# total line load in N per meter width applied on right edge, positive downward
+TOTAL_FORCE = -1000.0 / WIDTH  # N/m on the boundary (consistent with original)
+
+# Plotting
+TOPLOT = True
+DISP_SCALING = 50

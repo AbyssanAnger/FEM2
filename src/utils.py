@@ -1,262 +1,258 @@
+# utils.py
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import torch
-import numpy as np
-
-# if TOPLOT:
-#     plot_beam(self)
-#     plot_results(self)
+from config import LENGTH, HEIGHT, WIDTH, TOTAL_FORCE
+from src.analytics import analytical_sigma_xx_midspan
 
 
-def plot_beam(solver, figsize=(10, 4)):
-    """
-    Plottet das FEM-Mesh eines Balkens.
-
-    Parameter:
-    - coords: Knoten-Koordinaten (aus generate_beam)
-    - elems: Element-Konnektivitäten (aus generate_beam)
-    - drlt: Dirichlet-BCs (aus generate_beam)
-    - neum: Neumann-BCs (aus generate_beam)
-    - l, b: Optional für Labels/Titel (falls nicht übergeben, aus coords abgeleitet)
-    - nx, ny: Optional für Titel (Anzahl Elemente)
-    - figsize: Größe der Figur (Standard: breiter für lange Balken)
-
-    Returns: None (zeigt Plot an)
-    """
-    if l is None or b is None:
-        l = coords[:, 0].max() - coords[:, 0].min()
-        b = coords[:, 1].max() - coords[:, 1].min()
-    if nx is None or ny is None:
-        nx = (
-            len(elems) // (np.max(elems[:, 1]) - np.min(elems[:, 0]) + 1)
-            if elems.size > 0
-            else 2
-        )  # Grobe Schätzung
-        ny = len(elems) // nx if elems.size > 0 else 2
-
-    fig, ax = plt.subplots(figsize=figsize)
-
-    # Aspekt-Ratio proportional zum Balken (nicht 'equal' – für schmale Balken essenziell!)
-    aspect = b / l
-    ax.set_aspect(aspect)
-
-    # Knoten plotten (kleine blaue Punkte)
-    ax.scatter(coords[:, 0], coords[:, 1], c="blue", s=5, label="Knoten")
-
-    # Elemente plotten (blaue Linien)
-    for elem in elems:
-        pts = coords[elem]
-        ax.plot(pts[:, 0], pts[:, 1], "b-", linewidth=1)
-
-    # Dirichlet-BCs markieren (rote Dreiecke)
-    drlt_nodes = drlt[:, 0].astype(int)
-    seen_drlt = False
-    for node_id in drlt_nodes:
-        if not seen_drlt:
-            ax.scatter(
-                coords[node_id, 0],
-                coords[node_id, 1],
-                c="red",
-                marker="^",
-                s=50,
-                label="Dirichlet-BC",
-            )
-            seen_drlt = True
-        else:
-            ax.scatter(
-                coords[node_id, 0], coords[node_id, 1], c="red", marker="^", s=50
-            )
-
-    # Neumann-BCs markieren (grüne Dreiecke) + Last-Werte als Labels
-    neum_nodes = neum[:, 0].astype(int)
-    seen_neum = False
-    for i, node_id in enumerate(neum_nodes):
-        load_value = neum[i, 2]
-        if not seen_neum:
-            ax.scatter(
-                coords[node_id, 0],
-                coords[node_id, 1],
-                c="green",
-                marker="v",
-                s=50,
-                label="Neumann-BC",
-            )
-            seen_neum = True
-        else:
-            ax.scatter(
-                coords[node_id, 0], coords[node_id, 1], c="green", marker="v", s=50
-            )
-        # Kleines Label für den Last-Wert (wissenschaftliche Notation für große Zahlen)
-        ax.annotate(
-            f"{load_value:.1e}",
-            (coords[node_id, 0], coords[node_id, 1]),
-            xytext=(5, 5),
-            textcoords="offset points",
-            fontsize=6,
-            color="green",
-        )
-
-    # Achsen und Labels
-    ax.set_xlabel("x (Länge)")
-    ax.set_ylabel("y (Breite)")
-    ax.set_title(
-        f"Finite-Elemente-Mesh des Balkens (l={l:.3f}, b={b:.3f}, nx={nx}, ny={ny})"
-    )
-    ax.grid(True, alpha=0.3)
-    ax.legend()
-
-    plt.tight_layout()  # Passt Ränder an
-    plt.show()
-
-
-def plot_results(solver, disp_scaling=1000):
-    """
-    Erstellt Plots für FEM-Ergebnisse: Undeformiert, Deformiert, Spannungen.
-
-    Args:
-        solver: Instanz von FEMSolver (benötigt self.x, self.u, self.elems, etc.)
-        disp_scaling: Skalierung für Deformation (default: 1000)
-
-    Returns:
-        None (zeigt Plots an)
-    """
-    u_reshaped = solver.u.reshape(-1, solver.ndf)
-    x_disp = solver.coords + disp_scaling * u_reshaped
-
-    # Voigt-Indizes für 2D-Spannungen (σxx, σyy, σxy)
-    voigt = torch.tensor([[0, 0], [1, 1], [0, 1]])
-    ei = torch.eye(3)
-
-    # 2x2-Subplots
-    fig, axs = plt.subplots(2, 2, figsize=(10, 8))
-    indices = torch.tensor([0, 1, 2, 3, 0])  # Für geschlossene Elemente
-
-    # 1. Undeformiertes Mesh
-    ax = axs[0, 0]
-    for e in range(solver.nel):
-        els = solver.elems[e][indices]
-        ax.plot(solver.x[els, 0], solver.x[els, 1], "k-")
-    ax.plot(solver.x[:, 0], solver.x[:, 1], "ko", markersize=5)
-    ax.set_title("Undeformiertes Mesh")
+def plot_mesh(ax, mesh, elems, x, indices):
+    for e in range(mesh.nel):
+        els = elems[e, :][indices]
+        ax.plot(x[els, 0], x[els, 1], "k-", linewidth=0.5)
+    ax.plot(x[:, 0], x[:, 1], "ko", markersize=2)
     ax.axis("equal")
 
-    # 2. Deformiertes Mesh
-    ax = axs[0, 1]
-    for e in range(solver.nel):
-        els = solver.elems[e][indices]
-        ax.plot(x_disp[els, 0], x_disp[els, 1], "b-")
-    ax.plot(x_disp[:, 0], x_disp[:, 1], "bo", markersize=5)
-    ax.set_title("Deformiertes Mesh")
-    ax.axis("equal")
 
-    # 3. & 4. Spannungen an Gauss-Punkten (z. B. σxx und σxy)
-    plotdata = torch.zeros(solver.nel * solver.nqp, 3)  # x, y, value
-    components = ["xx", "xy"]  # Für die zwei Plots
-    for i, comp_idx in enumerate([0, 2]):  # Index in voigt
-        ax = axs[1, i]
-        qp_idx = 0
-        for e in range(solver.nel):
-            xe = solver.x[solver.elems[e]].t()  # (ndm, nen)
-            ue = u_reshaped[solver.elems[e]]  # (nen, ndf)
-            for q in range(solver.nqp):
-                # Gauss-Punkt-Position (undeformiert)
-                xgauss = (xe @ solver.N[q]).squeeze()
+def _compute_element_dofs(ndf, elem_nodes):
+    local = []
+    for ien in range(elem_nodes.numel()):
+        node = int(elem_nodes[ien].item())
+        for idf in range(ndf):
+            local.append(node * ndf + idf)
+    return torch.tensor(local, dtype=torch.long)
 
-                # Dehnung und Spannung berechnen
-                gamma = solver.gamma[q]
-                Je = xe @ gamma.t()
-                detJe = torch.det(Je)
-                if detJe <= 0:
-                    print(f"Warning: Negative detJe in Element {e}, QP {q}")
-                    continue
-                invJe = torch.inverse(Je)
-                G = gamma @ invJe
-                h = torch.zeros(3, 3)
-                h[: solver.ndm, : solver.ndm] = ue @ G
-                eps = 0.5 * (h + h.t())
-                stre = solver.material.stress_from_strain(
-                    eps[: solver.ndm, : solver.ndm], ei
+
+def plot_results(solver, disp_scaling=50):
+    """Replicates extended post-processing from the original script.
+
+    Plots:
+    - Unverformtes Netz
+    - Spannung XX, Spannung YY, Von-Mises-Spannung
+    - Verschiebung u_x, Verschiebung u_y
+    - Dehnung XX
+    - Cross-section stress at x = L/2
+    """
+    x = solver.mesh.x
+    elems = solver.mesh.elems
+    nnp = solver.mesh.nnp
+    nel = solver.mesh.nel
+    ndf, ndm, nen, nqp = solver.ndf, solver.ndm, solver.nen, solver.nqp
+
+    u = solver.u.view(-1, ndf)
+    x_disped = x + disp_scaling * u
+
+    titles = [
+        "Spannung XX",
+        "Spannung YY",
+        "Von-Mises-Spannung",
+        "Verschiebung u_x",
+        "Verschiebung u_y",
+        "Dehnung XX",
+    ]
+
+    # For nodal extrapolation/averaging
+    nodal_sums = torch.zeros(nnp, len(titles), dtype=x.dtype)
+    nodal_counts = torch.zeros(nnp, len(titles), dtype=x.dtype)
+
+    # Precompute N at gauss points (nqp x nen)
+    N_qp = solver.N  # (nqp, nen)
+    gamma_qp = solver.gamma  # (nqp, nen, ndm)
+    N_at_gps = torch.vstack([N_qp[q] for q in range(nqp)])  # (nqp, nen)
+    try:
+        extrap = torch.inverse(N_at_gps)
+    except RuntimeError:
+        extrap = torch.linalg.pinv(N_at_gps)
+
+    # Loop elements to compute gauss point fields and extrapolate to nodes
+    for e in range(nel):
+        elem_nodes = elems[e]
+        local_dofs = _compute_element_dofs(ndf, elem_nodes)
+        ue_vec = solver.u[local_dofs].view(nen, ndf).t()  # (ndm, nen)
+        xe = x[elem_nodes].t()  # (ndm, nen)
+
+        # Per-gauss arrays
+        s_xx = torch.zeros(nqp, dtype=x.dtype)
+        s_yy = torch.zeros(nqp, dtype=x.dtype)
+        s_vm = torch.zeros(nqp, dtype=x.dtype)
+        eps_xx = torch.zeros(nqp, dtype=x.dtype)
+
+        for q in range(nqp):
+            gamma = gamma_qp[q]  # (nen, ndm)
+            Je = xe @ gamma
+            detJe = torch.det(Je)
+            if detJe <= 0:
+                continue
+            invJe = torch.inverse(Je)
+            G = gamma @ invJe  # (nen, ndm)
+
+            h = ue_vec @ G  # (ndm, ndm)
+            eps = 0.5 * (h + h.t())[:ndm, :ndm]  # 2x2
+            stre = solver.material.stress_from_strain(eps)  # 2x2
+
+            s11 = stre[0, 0]
+            s22 = stre[1, 1]
+            s12 = stre[0, 1]
+            s33 = torch.tensor(0.0, dtype=x.dtype)  # plane stress
+            sigma_vm = torch.sqrt(
+                0.5
+                * (
+                    (s11 - s22) ** 2
+                    + (s22 - s33) ** 2
+                    + (s33 - s11) ** 2
+                    + 6.0 * (s12**2)
                 )
-                stre_val = stre[voigt[comp_idx, 0], voigt[comp_idx, 1]]
+            )
 
-                plotdata[qp_idx] = torch.cat([xgauss, stre_val.unsqueeze(0)])
-                qp_idx += 1
+            s_xx[q] = s11
+            s_yy[q] = s22
+            s_vm[q] = sigma_vm
+            eps_xx[q] = eps[0, 0]
 
-        # Scatter-Plot mit Farbkodierung
-        max_val = torch.max(torch.abs(plotdata[:, 2])) + 1e-12
-        scatter = ax.scatter(
-            plotdata[:, 0],
-            plotdata[:, 1],
-            c=plotdata[:, 2] / max_val,
-            s=100,
-            cmap="jet",
+        # Extrapolate gp -> nodes for stress/strain fields
+        nodal_vals_elem = torch.stack(
+            [
+                extrap @ s_xx,
+                extrap @ s_yy,
+                extrap @ s_vm,
+                extrap @ eps_xx,  # will map into Dehnung XX slot later
+            ]
+        )  # (4, nen)
+
+        # Accumulate
+        for i_local, node in enumerate(elem_nodes):
+            node_idx = int(node.item())
+            nodal_sums[node_idx, 0] += nodal_vals_elem[0, i_local]
+            nodal_sums[node_idx, 1] += nodal_vals_elem[1, i_local]
+            nodal_sums[node_idx, 2] += nodal_vals_elem[2, i_local]
+            nodal_sums[node_idx, 5] += nodal_vals_elem[3, i_local]  # Dehnung XX
+            nodal_counts[node_idx, 0:6] += 1.0
+
+    # Average
+    counts = nodal_counts.clone()
+    counts[counts == 0] = 1.0
+    nodal_avg = nodal_sums / counts
+
+    # Displacements directly from u
+    field_ux = u[:, 0]
+    field_uy = u[:, 1]
+
+    # Plot 3x3 layout
+    fig = plt.figure(figsize=(12, 10))
+
+    # 1: Unverformtes Netz (mit BC-Markern wie im Original)
+    ax1 = plt.subplot(3, 3, 1)
+    ax1.set_title("Unverformtes Netz")
+    plot_mesh(ax1, solver.mesh, elems, x, solver.indices)
+    # Dirichlet (grün), Neumann (rot)
+    drlt_in = solver.mesh._drlt_in
+    if drlt_in is not None and len(drlt_in) > 0:
+        drlt_t = (
+            torch.tensor(drlt_in) if not isinstance(drlt_in, torch.Tensor) else drlt_in
         )
-        ax.set_title(f"Spannung σ_{components[i]}")
+        for i in range(drlt_t.size(0)):
+            node_idx = int(drlt_t[i, 0].item())
+            dof = int(drlt_t[i, 1].item())
+            if dof == 0:
+                ax1.plot(x[node_idx, 0], x[node_idx, 1], "g>", markersize=5)
+            elif dof == 1:
+                ax1.plot(x[node_idx, 0], x[node_idx, 1], "g^", markersize=5)
+    neum_in = solver.mesh._neum_in
+    if neum_in is not None and len(neum_in) > 0:
+        neum_t = (
+            torch.tensor(neum_in) if not isinstance(neum_in, torch.Tensor) else neum_in
+        )
+        for i in range(neum_t.size(0)):
+            node_idx = int(neum_t[i, 0].item())
+            dof = int(neum_t[i, 1].item())
+            if dof == 0:
+                ax1.plot(x[node_idx, 0], x[node_idx, 1], "r>", markersize=5)
+            elif dof == 1:
+                ax1.plot(x[node_idx, 0], x[node_idx, 1], "r^", markersize=5)
+    ax1.set_xlabel("x [m]")
+    ax1.set_ylabel("y [m]")
+
+    # Helper to plot scalar nodal field (tricontourf on undeformed coords; deformed edges overlaid)
+    def plot_scalar(ax, values, title, unit=None, scale=None):
+        vals = values.clone()
+        unit_str = ""
+        if scale is not None:
+            vals = vals * scale
+        if unit is not None:
+            unit_str = f" ({unit})"
+        vmin = torch.min(vals)
+        vmax = torch.max(vals)
+        ax.set_title(f"{title}{unit_str}\nMax: {vmax:.2e}, Min: {vmin:.2e}")
+        sc = ax.tricontourf(
+            x[:, 0].detach().cpu(),
+            x[:, 1].detach().cpu(),
+            vals.detach().cpu(),
+            levels=15,
+            cmap=mpl.cm.jet,
+        )
+        plt.colorbar(sc, ax=ax)
         ax.axis("equal")
-        plt.colorbar(scatter, ax=ax, label="Normalisiert")
 
-    plt.tight_layout()
-    plt.show()
+    # 2..7: fields
+    ax2 = plt.subplot(3, 3, 2)
+    plot_mesh(ax2, solver.mesh, elems, x_disped, solver.indices)
+    plot_scalar(ax2, nodal_avg[:, 0] / 1e6, "Spannung XX", unit="MPa")
 
+    ax3 = plt.subplot(3, 3, 3)
+    plot_mesh(ax3, solver.mesh, elems, x_disped, solver.indices)
+    plot_scalar(ax3, nodal_avg[:, 1] / 1e6, "Spannung YY", unit="MPa")
 
-# def plot_boundary_conditions(mesh, ax=None):
-#     """
-#     Plottet Randbedingungen (Dirichlet: grün, Neumann: rot) auf ein Axes-Objekt.
+    ax4 = plt.subplot(3, 3, 4)
+    plot_mesh(ax4, solver.mesh, elems, x_disped, solver.indices)
+    plot_scalar(ax4, nodal_avg[:, 2] / 1e6, "Von-Mises-Spannung", unit="MPa")
 
-#     Args:
-#         mesh: Instanz von Mesh (benötigt self.x, self.drlt_mask, etc.)
-#         ax: Matplotlib-Axes (default: None → erstellt neues)
+    ax5 = plt.subplot(3, 3, 5)
+    plot_mesh(ax5, solver.mesh, elems, x_disped, solver.indices)
+    plot_scalar(ax5, field_ux * 1000.0, "Verschiebung u_x", unit="mm")
 
-#     Returns:
-#         ax: Das Axes-Objekt
-#     """
-#     if ax is None:
-#         fig, ax = plt.subplots()
+    ax6 = plt.subplot(3, 3, 6)
+    plot_mesh(ax6, solver.mesh, elems, x_disped, solver.indices)
+    plot_scalar(ax6, field_uy * 1000.0, "Verschiebung u_y", unit="mm")
 
-#     # Fixierte DOFs (grüne Pfeile)
-#     drlt_nodes = torch.nonzero(mesh.drlt_mask.squeeze()).squeeze()
-#     for dof in drlt_nodes:
-#         node_id = dof // mesh.ndf  # Annahme ndf=2
-#         dir = dof % 2  # 0=x, 1=y
-#         x_pos = mesh.x[node_id]
-#         if dir == 0:  # x-Richtung
-#             ax.plot(x_pos[0] - 0.02, x_pos[1], "g>", markersize=10)
-#         else:  # y-Richtung
-#             ax.plot(x_pos[0], x_pos[1] - 0.02, "g^", markersize=10)
+    ax7 = plt.subplot(3, 3, 7)
+    plot_mesh(ax7, solver.mesh, elems, x_disped, solver.indices)
+    plot_scalar(ax7, nodal_avg[:, 5], "Dehnung XX")
 
-#     # Kräfte (rote Pfeile)
-#     neum_nodes = torch.nonzero(mesh.neum_vals.squeeze() != 0).squeeze()
-#     for dof in neum_nodes:
-#         node_id = dof // 2
-#         dir = dof % 2
-#         x_pos = mesh.x[node_id]
-#         if dir == 0:
-#             ax.plot(x_pos[0] + 0.02, x_pos[1], "r>", markersize=10)
-#         else:
-#             ax.plot(x_pos[0], x_pos[1] + 0.02, "r^", markersize=10)
+    # 8: Cross-section at L/2 of sigma_xx
+    ax8 = plt.subplot(3, 3, 8)
+    mid_x = (x[:, 0].max() + x[:, 0].min()) / 2.0
+    # pick nodes with x closest to mid_x
+    x_coords = x[:, 0]
+    idx_mid_x = torch.argmin(torch.abs(x_coords - mid_x))
+    closest_x = x_coords[idx_mid_x]
+    row_nodes = torch.where(x_coords == closest_x)[0]
+    y_vals = x[row_nodes, 1]
+    sigma_xx_row = nodal_avg[row_nodes, 0] / 1e6
+    y_sorted, order = torch.sort(y_vals)
+    sigma_sorted = sigma_xx_row[order]
+    ax8.plot(
+        sigma_sorted.detach().cpu().numpy(),
+        y_sorted.detach().cpu().numpy(),
+        "bo-",
+        label="FEM Ergebnis",
+    )
+    # Analytical curve at mid-span (using end force convention from original)
+    y_analytical, sigma_analytical = analytical_sigma_xx_midspan(
+        height=float(HEIGHT),
+        width=float(WIDTH),
+        length=float(LENGTH),
+        total_end_force=float(abs(TOTAL_FORCE)),
+    )
+    ax8.plot(
+        (sigma_analytical / 1e6).detach().cpu().numpy(),
+        y_analytical.detach().cpu().numpy(),
+        "r--",
+        label="Analytische Lösung",
+    )
+    ax8.set_title(f"Biegespannung bei x = {float(closest_x):.3f} m")
+    ax8.set_xlabel("Spannung XX (MPa)")
+    ax8.set_ylabel("y-Koordinate (m)")
+    ax8.grid(True)
+    ax8.legend()
 
-#     ax.plot(mesh.x[:, 0], mesh.x[:, 1], "ko", markersize=5)  # Knoten
-#     ax.set_title("Randbedingungen")
-#     ax.axis("equal")
-#     return ax
-
-
-# Weitere Hilfsfunktionen (erweitere bei Bedarf)
-def timer(func):
-    """Decorator für Timing von Funktionen."""
-    import time as timemodule
-
-    def wrapper(*args, **kwargs):
-        start = timemodule.perf_counter()
-        result = func(*args, **kwargs)
-        end = timemodule.perf_counter()
-        print(f"{func.__name__} took {end - start:.4f}s")
-        return result
-
-    return wrapper
-
-
-def save_results_to_csv(solver, filename="fem_results.csv"):
-    """Speichert Verschiebungen u in eine CSV."""
-    u_reshaped = solver.u.reshape(-1, solver.ndf).numpy()
-    np.savetxt(filename, u_reshaped, delimiter=",", header="ux,uy", comments="")
-    print(f"Results saved to {filename}")
+    fig.tight_layout()
