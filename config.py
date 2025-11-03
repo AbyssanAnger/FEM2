@@ -15,7 +15,7 @@ NDM = 2
 NEN = 4
 NQP = 4
 
-# Geometry
+# Geometry # in meters
 LENGTH = 2.0
 HEIGHT = 0.05
 WIDTH = 0.05
@@ -24,7 +24,8 @@ NY = 10
 
 # Loads / BCs
 # total line load in N per meter width applied on right edge, positive downward
-TOTAL_FORCE = -1000.0 / WIDTH  # N/m on the boundary (consistent with original)
+FORCE = -1000.0
+TOTAL_FORCE = FORCE / WIDTH  # N/m on the boundary (consistent with original)
 
 # Plotting
 TOPLOT = True

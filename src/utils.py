@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import torch
-from config import LENGTH, HEIGHT, WIDTH, TOTAL_FORCE
+from config import LENGTH, HEIGHT, WIDTH, FORCE, TOTAL_FORCE
 from src.analytics import analytical_sigma_xx_midspan
 
 
@@ -241,6 +241,7 @@ def plot_results(solver, disp_scaling=50):
         height=float(HEIGHT),
         width=float(WIDTH),
         length=float(LENGTH),
+        force=float(FORCE),
         mid_point_x=float(closest_x),
     )
     ax8.plot(

@@ -10,20 +10,24 @@ def analytical_sigma_xx_midspan(
     height: float,
     width: float,
     length: float,
+    force: float,
     mid_point_x: float,
     num_points: int = 100,
 ):
     """Returns (y, sigma_xx) along the height at x = mid_point_x.
 
     Uses exact same formula as original: M_z = 1000.0 * (length - mid_point_x)
-    This corresponds to a resultant force of 1000.0 N at the free end.
+    The force should be the magnitude of the resultant force (positive value).
 
     height, width: section dimensions [m]
     length: beam length [m]
+    force: magnitude of resultant force at free end [N] (will use absolute value)
     mid_point_x: x-coordinate where to evaluate [m]
     """
     I_z = (width * height**3) / 12.0
-    M_z = 1000.0 * (length - mid_point_x)  # F * (L-x), exactly as in original
+    M_z = abs(force) * (
+        length - mid_point_x
+    )  # F * (L-x), use absolute value as in original
     y_analytical = torch.linspace(
         0.0, height, num_points, dtype=torch.get_default_dtype()
     )
