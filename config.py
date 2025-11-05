@@ -19,7 +19,7 @@ NQP = 4
 LENGTH = 2.0
 HEIGHT = 0.05
 WIDTH = 0.05
-NX = 120
+NX = 400
 NY = 10
 
 # Loads / BCs
