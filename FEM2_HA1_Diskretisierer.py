@@ -22,13 +22,12 @@ def analysis():
     global tdm
     NEN = 4
     FORCE = -1000.0
-    # --- Geometrie: Prozedurale Erzeugung eines Balkennetzes ---
     LENGTH = 2.0  # m
     HEIGHT = 0.05  # m
     WIDTH = 0.05  # m (für Kraftberechnung, nicht für 2D-Netz)
 
     NX = 120  # Anzahl der Elemente in Längsrichtung
-    NY = 10  # Anzahl der Elemente in Höhenrichtung (wichtig für genauen Verlauf)
+    NY = 10  # Anzahl der Elemente in Höhenrichtung
 
     # Erzeuge Knoten
     x_coords = torch.linspace(0, LENGTH, NX + 1)
@@ -62,17 +61,7 @@ def analysis():
     # Gauss quadrature
     nqp = 4
 
-    ############ Identity tensors ###########
-    ei = torch.eye(NDM, NDM)
-
-    I = torch.eye(3, 3)
-
-    blk = E / (3 * (1 - 2 * NU))
-    mu = E / (2 * (1 + NU))
-    # C4 = blk * I4 + 2 * mu * I4dev
-    lame = blk - 2 / 3 * mu
-
-    # Korrekter Materialtensor für ebenen Spannungszustand (plane stress)
+    # Materialtensor für ebenen Spannungszustand (plane stress)
     C4 = torch.zeros(2, 2, 2, 2)
     factor = E / (1 - NU**2)
     C4[0, 0, 0, 0] = factor * 1
@@ -80,10 +69,9 @@ def analysis():
     C4[0, 0, 1, 1] = factor * NU
     C4[1, 1, 0, 0] = factor * NU
 
-    shear_factor = E / (2 * (1 + NU))  # Schubmodul G
+    shear_factor = E / (2 * (1 + NU))
     C4[0, 1, 0, 1] = C4[1, 0, 0, 1] = C4[0, 1, 1, 0] = C4[1, 0, 1, 0] = shear_factor
 
-    ############ Preprocessing ###############
     nnp = x.size()[0]
     print("nnp: ", nnp)
     nel = elems.size()[0]
@@ -98,9 +86,7 @@ def analysis():
     drltDofs = torch.nonzero(drlt_mask)
     print("drltDofs", drltDofs)
 
-    drlt_matrix = 1e22 * torch.diag(
-        drlt_mask[:, 0], 0
-    )  # Große Zahl auf den Diagonalen der festgehaltenen Freiheitsgrade (Penalty-Methode Steifigkeitsmethode)
+    drlt_matrix = 1e22 * torch.diag(drlt_mask[:, 0], 0)
 
     neum_vals = torch.zeros(nnp * NDF, 1)
     for i in range(neum.size()[0]):
@@ -141,9 +127,6 @@ def analysis():
 
     indices = torch.tensor([0, 1, 2, 3, 0])
 
-    # (Plot des unverformten Netzes wird weiter unten im 3x3-Layout erstellt)
-
-    ############## Analysis ###############
     u = torch.zeros(NDF * nnp, 1)
     print("x", x)
 
@@ -170,7 +153,6 @@ def analysis():
     fint = torch.zeros(NDF * nnp, 1)
     fvol = torch.zeros(NDF * nnp, 1)
 
-    ############################Element#####################################
     for el in range(nel):
         xe = torch.zeros(NDM, NEN)
         for idm in range(NDM):
@@ -179,8 +161,8 @@ def analysis():
         ue = torch.squeeze(u[edof[el, 0:NDM, :]])
 
         Ke.zero_()
+        finte.zero_()
         for q in range(nqp):
-            N = masterelem_N[q]
             gamma = masterelem_gamma[q]
 
             Je = xe.mm(gamma)
@@ -232,16 +214,10 @@ def analysis():
     u = free_mask.mul(u) + drlt_mask.mul(drlt_vals)
     print("u: ", u)
 
-    fext = K * u
-    frea = fext - fvol - fsur
-
-    ###### Post-processing/ plots ########
     u_reshaped = torch.reshape(u, (-1, 2))
 
     x_disped = x + disp_scaling * u_reshaped
 
-    voigt = torch.tensor([[0, 0], [1, 1], [2, 2], [0, 1], [0, 2], [1, 2]])
-    # --- ANPASSUNG: Plot-Titel ändern, um Verschiebungen statt Schubspannungen anzuzeigen ---
     plot_titles = [
         "Spannung XX",
         "Spannung YY",
@@ -250,17 +226,9 @@ def analysis():
         "Verschiebung u_y",
         "Dehnung XX",
     ]
-    ei = torch.eye(3, 3)
-    # Die Größe von plotdata ist nicht mehr kritisch, da wir Knotenergebnisse plotten
-    plotdata = torch.zeros(len(plot_titles), nel * nqp, 3)
 
-    # --- NEU: Initialisierung für Knoten-Spannungs-Extrapolation ---
-    # Tensor zum Speichern der summierten Spannungswerte an jedem Knoten
     nodal_stresses_sum = torch.zeros(nnp, len(plot_titles))
-    # Tensor zum Zählen, wie viele Elemente zu jedem Knoten beitragen (für die Mittelung)
     nodal_contribution_count = torch.zeros(nnp, len(plot_titles))
-
-    # --- Aufbereitung: sammle Gauspunkt-Felder und extrapoliere zu Knoten (ohne Plots) ---
     N_at_gps = torch.vstack([masterelem_N[q] for q in range(nqp)])
     try:
         extrapolation_matrix = torch.inverse(N_at_gps)
@@ -363,8 +331,7 @@ def analysis():
         plt.colorbar(sc, ax=ax)
         ax.axis("equal")
 
-    # 3x3 Layout aufbauen
-    fig = plt.figure(figsize=(12, 10))
+    plt.figure(figsize=(12, 10))
 
     # 1: Unverformtes Netz mit BC-Markern
     ax1 = plt.subplot(3, 3, 1)
@@ -410,10 +377,7 @@ def analysis():
     plot_mesh(ax7, x_disped, elems, indices)
     plot_scalar(ax7, nodal_avg[:, 5], "Dehnung XX")
 
-    # --- NEU: Letzter Plot - Spannungsverlauf bei L/2 ---
-    ax_cross_section = plt.subplot(3, 3, 8)  # Plot an Position 8
-
-    # Finde Knotenreihe nahe x = L/2
+    ax_cross_section = plt.subplot(3, 3, 8)
     mid_point_x = LENGTH / 2.0
     closest_x_value = x_coords[torch.argmin(torch.abs(x_coords - mid_point_x))]
     mid_nodes_indices = torch.where(x[:, 0] == closest_x_value)[0]
@@ -427,7 +391,6 @@ def analysis():
     y_sorted, indices_sorted = torch.sort(y_vals_mid)
     stress_sorted = stress_xx_mid[indices_sorted]
 
-    # Analytische Lösung (wie bisher)
     I_z = (WIDTH * HEIGHT**3) / 12
     M_z = (1000.0) * (LENGTH - mid_point_x)
     y_analytical = torch.linspace(0, HEIGHT, 100)
