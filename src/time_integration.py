@@ -1,0 +1,1 @@
+# Newmark-Beta Methode

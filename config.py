@@ -6,19 +6,23 @@ TORCH_THREADS = 4
 torch.set_default_dtype(DEFAULT_DTYPE)
 torch.set_num_threads(TORCH_THREADS)
 
-# Problem parameters
-E = 210e9
+# Parameters
+E = 210e9  # MPa
 NU = 0.3
+M = torch.rand(100)  # kg
+
 TDM = 2
 NDF = 2
 NDM = 2
 NEN = 4
 NQP = 4
 
-# Geometry # in meters
+# Geometry in meters
 LENGTH = 2.0
 HEIGHT = 0.05
 WIDTH = 0.05
+
+# in mm
 NX = 400
 NY = 10
 
