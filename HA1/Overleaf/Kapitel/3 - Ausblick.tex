@@ -1,0 +1,47 @@
+\section{Zusammenfassung}
+Abschließend lässt sich feststellen, dass die Ergebnisse der drei Ansätze – der analytischen Bernoulli-Balkentheorie, der numerischen Berechnung mit dem selbst implementierten 2D-FEM-Code sowie der Simulation mit ANSYS –  grundsätzlich eine gute Übereinstimmung zeigen. Dennoch treten geringe Abweichungen auf, die sich auf unterschiedliche Modellannahmen und numerische Effekte zurückführen lassen.
+
+Die maximale Verschiebung ergibt sich nach der Bernoulli-Theorie am größten. Dies liegt in der zugrundeliegenden Annahme der Bernoulli-Balkentheorie begründet, nach der Querschnitte während der Verformung eben und senkrecht zur Balkenachse bleiben. Querschubverformungen werden hierbei vernachlässigt. Im Gegensatz dazu berücksichtigen numerische Verfahren wie die 2D-FEM-Analyse oder die ANSYS-Simulation indirekt auch Effekte aus Schubverformungen oder lokaler Steifigkeitserhöhung, was zu geringfügig kleineren Verschiebungen führt.
+
+Abweichungen zwischen analytischer und numerischer Lösung können außerdem durch Singularitäten an der Einspannung oder durch lokale Diskretisierungseffekte entstehen. Während die Bernoulli-Theorie idealisierte, glatte Randbedingungen verwendet, erzeugt die feste Einspannung in der numerischen Simulation eine lokale Spannungssingularität, bei der die Spannungen mit zunehmender Netzverfeinerung theoretisch gegen unendlich streben. Dadurch ist ein konvergentes punktuelles Spannungsergebnis an dieser Stelle nicht möglich.
+
+Der entwickelte 2D-FEM-Code bildet eine solide Grundlage für weiterführende Untersuchungen. Aufbauend auf dem linearen, elastischen Modell können im weiteren Verlauf des Semesters nichtlineare Materialmodelle und größere
+Deformationen implementiert werden. Durch höherwertige Ansatzfunktionen kann zudem das beobachtete Shear-Locking-Phänomen reduziert und die numerische Genauigkeit hinsichtlich der maximlen Spannungen verbessert werden.
+
+Je feiner diskretisiert wird, desto eher konvergiert die Verschiebung in y-Richtung entgegen der analytischen Lösung. Der Knoten an dem die maximale Normalspannung $\sigma_{xx}$ an der Einspannung auftritt, wird immer einen Fehler besitzen. Dieser Fehler nimmt mit feinerer Diskretisierung weiter zu.
+
+Zuletzt lässt sich sagen, dass ein Vergleich zwischen einer kommerziellen FEM-Software und der Implementierung in Python sich als sinnvoll erweist, hinsichtlich der Validierung der Ergebnisse. Sofern ein sogenanntes akademisches Beispiel vorhanden ist, wie in diesem Falle der Biegebalken, ist es ratsam auch hiermit zu vergleichen und auszuwerten.
+
+\subsection{Numerische Abweichungen/Instabilitäten}
+Bei den Untersuchungen mit unserem 2D-FEM Code sind drei unterschiedliche Phänomene zu beobachten gewesen.
+
+\paragraph{Shear Locking}
+Bei gleichbleibender Element Anzahl in vertikaler Richtung, und einer Verringerung der Elemente in Horizontaler Richtung, wurde eine Verringerung der auftretenden Spannung festgestellt. Die Ergebnisse entfernen sich weiter von der analytischen Bernoulli-Theorie. Dieses Phänomen verstärkt sich also durch eine stärkere Verzerrung (aspect ratio) der Ausgangskonfiguration. Recherchen zeigten, dass dieses Phänomen Shear Locking genannt wird und besonders Elemente, mit linearen Ansatzfunktionen darunter leiden. Die im Code implementierten Quadrilateralen Elemente nutzen genau diese Funktionen.
+
+Bei Elementen die eine gleiche Höhe wie Breite besitzen, also quadratisch aufgebaut sind, ist , an der Einspannung, eine Konvergenz der mechanischen Spannung nicht möglich.
+
+\paragraph{Singularität an der Einspannung}
+Gegenteilig dieser Spannungsverminderung bei nichtidealen Quadraten konnte eine Spannungserhöhung festgestellt werden, wenn die Anzahl der Elemente generell stieg. Durch Steigerungen der Elementanzahl konnten teilweise Spannungen weit über der Referenz aus der analytischen Lösung erreicht werden. Dieses Phänomen lässt sich durch die Randbedingung der festen Einspannung erklären, welche eine übertriebene physikalische Randbedingung darstellt und auch mathematisch zu Problemen führt und eine realistische Konvergenz der Lösung verhindert.
+\paragraph{Zu grobe Diskretisierung}
+Wenn das Modell testweise mit sehr wenigen Elementen (z.B. 2x10) aufgebaut wird, entstehen ebenfalls zu geringe Spannungen im Vergleich zur analytischen Lösung. Das könnte auf die Berechnung der Spannung an den Gauß-Punkten anstatt an den Knoten liegen. Desweiteren
+
+
+Die gerade genannten Phänomene überlagern sich und können so bei einer feinen Vernetzung (Singularitätsbegünstigend) 
+
+Der erstellte FEM Code dient als Grundlage weiterer im Laufe des Semester gestellter Aufgaben
+
+\subsection{Aussicht}
+Es ist sinnvoll Knoten in einem konkreten Abstand zur Einspannung als Referenzspannung für die Festigkeitsbewertung zu  nutzen. Als Wert kann \SI{10}{\milli\meter} vorgeschlagen werden (Referenz z.B. DVS1608 - 1 Gestaltung und Festigkeitsbewertung von 
+Schweißkonstruktionen aus Aluminiumlegierungen im Schienenfahrzeugbau).\\
+Dadurch werden die unrealistischen Spannungen aus der Singularität vernachlässigt und es kann von einer guten Abbildung der Realität ausgegangen werden
+
+Der Code kann in Objektorientierte Programmierung umgeschrieben werden um z.B. quadratische Ansatzfunktionen (Erweiterung auf Quader mit 8 Knoten) als eine Klasse hinzuzufügen und die Funktionalität des Codes effizient erweitern zu können.
+
+Konvergenzanalyse-Option, die bis zu einer gewissen Abweichung in \% die Feinheit des Netzes iteriert, kann implementiert werden.
+
+Mehr Plotmöglichkeiten, wie angepasste Konturlinien und eine bessere Übersichtlichkeit.
+
+Für ein Vergleich der Ergebnisse ist es deshalb eventuell sinnvoll, diese nicht an der Stelle der größten mechanischen Spannung, sondern z.B. \SI{20}{\milli\meter} von der Einspannung entfernt durchzuführen.
+Quadratisches Netz => da rechteckiges Netz zu Spannungsabweichungen gegenüber der Balkentheorie führt.
+
+Eine Implementierung der Volumenkräfte z.B. durch die Erdanziehung ist möglich.

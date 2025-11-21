@@ -1,0 +1,39 @@
+\documentclass[ngerman, a4paper,10pt]{scrartcl}
+
+% nur hier einbinden:
+
+\input{Einstellungen/packages}
+\input{Einstellungen/commands}
+\input{Einstellungen/preferences}
+
+\begin{document}
+
+\input{Kapitel/0 - Titelblatt}
+
+\pagenumbering{roman}
+\tableofcontents
+
+\newpage
+
+\section*{Abkürzungen}
+
+
+\input{Kapitel/Nomenklatur/abkuerzungen}
+
+%\section*{Formelzeichen}
+%\input{Kapitel/Nomenklatur/formelzeichen}
+%\input{Kapitel/Nomenklatur/konstanten}
+\printnomenclature
+\clearpage
+\pagenumbering{arabic}
+
+\newpage
+\input{Kapitel/1 - Einführung}
+\newpage
+\input{Kapitel/2 - Hauptteil}
+\newpage
+\input{Kapitel/3 - Ausblick}
+\newpage
+\printbibliography[title={Literaturverzeichnis}]
+
+\end{document}

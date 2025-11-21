@@ -1,0 +1,151 @@
+\section{Motivation und Einleitung: FEM in der Praxis}
+
+Die \ac{FEM} ist eines der leistungsfähigsten und am weitesten verbreiteten numerischen Werkzeuge im modernen Ingenieurwesen. Viele reale physikalische Probleme, insbesondere in der Strukturmechanik, werden durch komplexe partielle Differentialgleichungen (DGLs) beschrieben, die oft keine einfache analytische Lösung besitzen.
+
+Hier setzt die FEM an: Sie transformiert ein kontinuierliches Problem (wie die Biegung eines Balkens) in ein diskretes System aus linearen Gleichungen, das von einem Computer effizient gelöst werden kann.
+
+Das primäre Ziel dieser ersten Hausaufgabe ist es, den fundamentalen Schritt von der abstrakten Theorie zur praktischen, numerischen Implementierung zu vollziehen. Wir nutzen einen bestehenden 2D-FEM-Solver in Python, um nicht nur ein Ergebnis zu erhalten, sondern um zu verstehen, \textit{wie} dieses Ergebnis zustande kommt. Das Beispiel eines Kragarms beziehungsweise Biegebalkens eignet sich für eine Einführung in die lineare FEM sehr gut, da eine bekannte analytische Lösung in Form eines Bernoulli-Balkens bekannt ist. Somit können die implementierte Methodik der FEM direkt mit der Theorie verglichen werden.
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.45\textwidth}
+\centering
+\includegraphics[width=1\textwidth]{Bilder/Cantilevered-Staircase.jpg}
+\caption{Frei schwebende Treppe \cite{noauthor_floating_nodate}}
+\end{minipage}\hfill
+\begin{minipage}{0.45\textwidth}
+\centering
+\includegraphics[width=1\textwidth]{Bilder/construction cantilever.jpg}
+\caption{Hochhaus-Balkenkonstruktion \cite{caimmo_spectacular_2020}}
+\end{minipage}
+\label{fig:Balkenanwendungen}
+\end{figure}
+
+\subsection*{Ziele dieser Hausaufgabe}
+
+Diese Aufgabe legt den Grundstein für das Verständnis numerischer Simulationen, indem wir drei Kernkompetenzen miteinander verbinden:
+
+\begin{itemize}
+    \item \textbf{Verständnis der numerischen Implementierung:} Wir lernen, wie die FEM-Methode zur Lösung von \ac{DGL}s in einem Computercode (Python) abgebildet wird. Durch die Anpassung des Inputs für einen Stahlträger wenden wir die Theorie direkt an.
+
+    \item \textbf{Anwendung auf die Strukturmechanik:} Dies ist der Brückenschlag zur praktischen Anwendung. Anstatt Prototypen ohne Kenntnisse über Verhalten und änhliches zu erstellen oder aufwändige Experimente durchzuführen, nutzen wir die Simulation, um das Verhalten einer Struktur unter Last vorherzusagen.
+
+    \item \textbf{Validierung der Ergebnisse:} Eine Simulation ist nur so gut wie ihre Validierung. Indem wir unsere FEM-Ergebnisse manuell mit der klassischen Bernoulli-Balkentheorie abgleichen, bauen wir Vertrauen in unsere numerischen Modelle auf und lernen, deren Grenzen und Genauigkeit einzuschätzen.
+\end{itemize}
+
+Durch die Bearbeitung dieser Aufgabe entwickeln wir ein grundlegendes Verständnis dafür, wie die FEM als Werkzeug eingesetzt wird, um reale ingenieurtechnische Probleme der Strukturmechanik zuverlässig zu lösen.
+
+
+\newpage
+
+\section{Einführung Methodik der Finiten-Elemente-Methode}
+Betrachten wir ein elastisches Kontinuum $\Omega \subset \mathbb{R}^d$ mit dem Rand 
+\[
+\partial\Omega = \Gamma_u \cup \Gamma_t, \qquad \Gamma_u \cap \Gamma_t = \emptyset.
+\]
+Auf dem Rand $\Gamma_u$ können Verschiebungen vorgegeben (Dirichlet-Randbedingungen) sein, während auf $\Gamma_t$ äußere Flächenlasten wirken (Neumann-Randbedingungen).
+
+Ziel der Finite-Elemente-Methode (FEM) ist es, die Verschiebungen $\bm{u}(\bm{x})$ im Gebiet $\Omega$ so zu bestimmen, dass das mechanische Gleichgewicht zwischen inneren und äußeren Kräften erfüllt ist.
+
+Im Sinne der Kontinuumsmechanik ergibt sich das Gleichgewicht aus der Forderung, dass die Summe der inneren Spannungen und der äußeren Volumenkräfte im Inneren des Körpers verschwindet:
+\begin{equation}
+\nabla \cdot \bm{\sigma} + \bm{b} = \bm{0} \quad \text{in } \Omega,
+\end{equation}
+wobei
+\begin{itemize}
+    \item $\bm{\sigma}$ der Cauchy-Spannungstensor ist und
+    \item $\bm{b}$ die Volumenkraft (z.\,B.\ Eigengewicht, Beschleunigung) bezeichnet.
+\end{itemize}
+Das in dieser Form vorliegende Gleichungssystem bezeichnet man als starke Form des Gleichgewichts. Diese Formulierung beruht auf der Forderung, dass die Gleichgewichtsbeziehung in jedem Punkt erfüllt sein muss. 
+
+Da diese Forderung analytisch nur in Spezialfällen lösbar ist, wird die Finite-Elemente-Methode eingeführt, um eine approximative, aber systematische Lösung zu ermöglichen. Dazu wird die starke Form in eine schwache Form überführt, in der die Gleichgewichtsbedingung nicht mehr punktweise, sondern im Mittel über das Gebiet $\Omega$ gilt. Hierfür werden Energieprinzipien, das Prinzip der virtuellen Arbeit, verwendet.Mit Hilfe der schwachen Form und einer entsprechenden Diskretisierung des Rechengebietes, kann eine approximierte Lösung bestimmt werden.
+
+
+Das lokale Gleichgewicht in starker Form für statische Fälle und kleine Deformationen lautet:
+\begin{equation}
+\nabla\cdot\bm{\sigma} + \bm{b} = \bm{0} \quad\text{in }\Omega,
+\end{equation}
+mit Randbedingungen
+\begin{equation}
+\bm{u}=\bar{\bm{u}} \quad\text{auf }\Gamma_u,
+\qquad
+\bm{\sigma}\cdot\bm{n}=\bar{\bm{t}} \quad\text{auf }\Gamma_t.
+\end{equation}
+
+Für linear-elastisches Material gilt die Beziehung
+\begin{equation}
+\bm{\sigma} = \mathbb{C}\bm{\varepsilon}(\bm{u}),
+\end{equation}
+wobei $\mathbb{C}$ die Hook'sche-Matrix ist.
+
+Sei $\bm{\eta}$ eine beliebige Testfunktion und 
+multipliziere sie mit der Gleichung des Gleichgewichts. Anschließend integriere über das Gebiet $\Omega$ und es ergibt sich:
+\begin{equation}
+\int_{\Omega} \bm{\eta} \cdot (\nabla \cdot \bm{\sigma}) \, \mathrm{d}\Omega 
++ \int_{\Omega} \bm{\eta} \cdot \bm{b} \, \mathrm{d}\Omega = 0.
+\end{equation}
+
+Unter Anwendung des Divergenzsatzes folgt:
+\begin{equation}
+\int_{\Omega} \bm{\eta} \cdot (\nabla \cdot \bm{\sigma}) \, \mathrm{d}\Omega 
+= \int_{\Gamma} \bm{\eta} \cdot (\bm{\sigma} \cdot \bm{n}) \, \mathrm{d}\Gamma
+- \int_{\Omega} \nabla \bm{\eta}  \bm{\sigma} \, \mathrm{d}\Omega.
+\end{equation}
+
+Mit der Neumann-Randbedingung auf $\Gamma_t$ erhält man:
+\begin{equation}
+\int_{\Omega} \nabla \bm{\eta}  \bm{\sigma} \, \mathrm{d}\Omega
+= \int_{\Omega} \bm{\eta} \cdot \bm{b} \, \mathrm{d}\Omega
++ \int_{\Gamma_t} \bm{\eta} \cdot \bar{\bm{t}} \, \mathrm{d}\Gamma.
+\end{equation}
+
+Setzt man $\bm{\sigma} = \mathbf{C}  \bm{\varepsilon}(\bm{u})$ ein, erhält man:
+\begin{equation}
+\int_{\Omega} \nabla \bm{\eta}  \big( \mathbf{C}  \bm{\varepsilon}(\bm{u}) \big) \, \mathrm{d}\Omega
+= \int_{\Omega} \bm{\eta} \cdot \bm{b} \, \mathrm{d}\Omega
++ \int_{\Gamma_t} \bm{\eta} \cdot \bar{\bm{t}} \, \mathrm{d}\Gamma.
+\end{equation}
+
+Zur Diskretisierung wird das Gebiet $\Omega$ in $n_{el}$ Elemente $\Omega^e$ unterteilt. 
+Das Verschiebungsfeld $\bm{u}$ und die Testfunktion $\bm{\eta}$ werden mit Formfunktionen $N_I(\bm{x})$ approximiert:
+\begin{equation}
+\bm{u}^h(\bm{x}) = \sum_{I=1}^{n_{K}} N_I(\bm{x}) \, \bm{u}_I,
+\qquad
+\bm{\eta}^h(\bm{x}) = \sum_{I=1}^{n_{K}} N_I(\bm{x}) \, \bm{\eta}_I.
+\end{equation}
+
+Die Verzerrung kann lokal durch die Matrix $\mathbf{B}$ beschrieben werden:
+\begin{equation}
+\bm{\varepsilon}^h(\bm{x}) = \mathbf{B}(\bm{x}) \, \bm{u}_e.
+\end{equation}
+
+Eingesetzt in die schwache Form ergibt sich:
+\begin{equation}
+\sum_{e=1}^{n_{el}} 
+\left[
+\int_{\Omega^e} (\mathbf{B} \, \bm{\eta}_e)^T \, \mathbf{C} \, (\mathbf{B} \, \bm{u}_e) \, \mathrm{d}\Omega
+- \int_{\Omega^e} (N \, \bm{\eta}_e)^T \, \bm{b} \, \mathrm{d}\Omega
+- \int_{\Gamma_t^e} (N \, \bm{\eta}_e)^T \, \bar{\bm{t}} \, \mathrm{d}\Gamma
+\right] = 0.
+\end{equation}
+
+Da $\bm{\eta}_e$ beliebig ist, folgt für jedes Element:
+\begin{equation}
+\mathbf{K}^e \, \bm{u}_e = \bm{f}^e,
+\end{equation}
+mit
+\begin{equation}
+\mathbf{K}^e = \int_{\Omega^e} \mathbf{B}^T \, \mathbf{C} \, \mathbf{B} \, \mathrm{d}\Omega,
+\qquad
+\bm{f}^e = \int_{\Omega^e} N^T \, \bm{b} \, \mathrm{d}\Omega 
++ \int_{\Gamma_t^e} N^T \, \bar{\bm{t}} \, \mathrm{d}\Gamma.
+\end{equation}
+
+% Volumenkräfte werden im statischen Fall vernachlässigt
+
+Durch Assemblierung aller Elemente erhält man schließlich:
+\begin{equation}
+\mathbf{K} \, \bm{u} = \bm{f}.
+\end{equation}
+
+Für das Modell in Python wurden die Volumenkräfte $b$ vernachlässigt.
