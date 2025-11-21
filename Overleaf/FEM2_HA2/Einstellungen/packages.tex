@@ -1,0 +1,71 @@
+% --- Schrift & Sprache ---
+\usepackage[utf8]{inputenc} % Eingabecodierung
+\usepackage[T1]{fontenc}    % Ausgabe (Umlaute korrekt)
+\usepackage{lmodern}
+\usepackage[ngerman]{babel}
+\usepackage{microtype}
+
+% --- Seitenlayout ---
+\usepackage{geometry}
+\geometry{left=17mm,right=17mm,top=15mm,bottom=20mm}
+\KOMAoptions{parskip=half}
+
+% --- Mathe ---
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{mathtools}
+\usepackage{nicefrac}
+\usepackage{tensor}
+\usepackage{esint}
+
+
+% --- Einheiten ---
+\usepackage{siunitx}
+\sisetup{per-mode=fraction}
+
+% --- Tabellen & Listen ---
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{makecell}
+\usepackage{enumitem}
+
+% --- Grafiken ---
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{calc,patterns,decorations.pathmorphing,decorations.markings}
+\usepackage{pgfplots}
+\usepackage{wrapfig}
+\usepackage{lscape}
+\usepackage[inkscapelatex=false]{svg}
+\usepackage{float}
+
+% --- Layout-Extras ---
+\usepackage{fancyhdr}
+\usepackage[center]{caption}
+\usepackage{subfig}
+\usepackage{color}
+\usepackage{ulem}
+\usepackage{framed}
+
+% --- Abkürzungen & Nomenklatur ---
+\usepackage[printonlyused]{acronym}
+\usepackage[intoc]{nomencl}
+\makenomenclature
+
+% --- Hyperlinks ---
+\usepackage[hidelinks]{hyperref}
+\usepackage[nameinlink]{cleveref}
+
+
+\usepackage[style=numeric-comp,
+            backend=biber,
+            url=true,
+            doi=true,
+            urldate=comp,
+            language=auto,
+            sorting=none]{biblatex}
+
+\usepackage{xurl}        % lange URLs automatisch umbrechen
+\usepackage[hidelinks]{hyperref}
+\usepackage{csquotes}
+\addbibresource{references.bib}

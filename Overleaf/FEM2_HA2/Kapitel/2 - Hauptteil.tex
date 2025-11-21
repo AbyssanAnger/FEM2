@@ -1,0 +1,121 @@
+\section{Implementierung im Code ← auch aufteilen in 2 \& 3?, damit schön gebündelt}
+
+\begin{itemize}
+    \item Anpassung der Penalty-Methode von 10e22 auf 10e13
+    \item 
+\end{itemize}
+
+\subsection{Parameterwahl für Balken und Netz}
+2 m Balken weil 1 HA bzw. verhältnis von Höhe zu Länge ein Balkenelement ergibt
+
+Quadratische Elementform aus Konvergenzgründen
+
+\subsection{Modalanalyse}
+Keine Berechnung der Inverse => sonst hoher Rechenaufwand
+
+\subsection{Quadratische Ansatzfunktionen}
+- Für Q9 weil genauer
+
+\subsection{Newmark-Beta-Verfahren}
+- Zeitschrittweite
+- gamma und beta Werte
+
+
+\subsection{Visualisierung ← sinnvolles Kapitel?}
+
+
+
+\section{Modalanalyse}
+
+
+
+\subsection{Modalanalyse Validierung}
+Um unser FEM-Modell in Python hinsichtlich der Modalanalyse auszuwerten und zu überprüfen werden nachfolgend ermittelte Moden des Python-Skriptes mit Moden aus der Software ANSYS verglichen. Hierbei muss jedoch nicht nur die Eigenfrequenz berücksichtigt werden, sondern auch der Eigenvektor. Nachfolgend wird exemplarisch ein Vergleich angestellt.
+
+\subsubsection{Python vs. Ansys} Bilder einfügen - grobe Struktur erstellen
+In der Tabelle \ref{tab:eigenvergleich} werden die ersten 10 berechneten Moden beziehungsweise Eigenfrequenzen aus dem Python-Skript mit denen aus ANSYS gegenüber gestellt. Es wurde folgendes Setup in Python wie ANSYS verwendet:
+\begin{itemize}
+    \item Länge des Balkens: \SI{2}{\meter}
+    \item Höhe des Balkens: \SI{0,5}{\meter}
+    \item Anzahl der Elemente in X-Richtung: 320
+    \item Anzahl der Elemente in Y-Richtung: 80
+    \item Ansatzfunktion: quadratisch
+\end{itemize}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{c | c | c}
+        \textbf{Mode} & \textbf{Eigenfrequenz Python [Hz]} & \textbf{Eigenfrequenz Ansys [Hz]} \\ \hline
+         1 & 10,67  & 10,45 \\
+         2 & 66,68  & 65,28 \\
+         3 & 185,89 & 181,94 \\
+         4 & 361,99 & 354,17 \\
+         5 & 593,65 & 580,54 \\
+         6 & 646,79 & 646,75 \\
+         7 & 878,38 & 860,17 \\
+         8 & 1213,41 & 1185,1 \\
+         9 & 1595,74 & 1557,2 \\
+        10 & 1940,4 & 1850,6 \\ \hline \hline
+    \end{tabular}
+    \caption{Vergleich der ersten 10 Eigenfrequenzen zwischen Python-FEM und ANSYS}
+    \label{tab:eigenvergleich}
+\end{table}
+Es ist zu erkennen, dass bei höheren Moden die berechneten Eigenfrequenzen von den ANSYS-Eigenfrequenzen abweichen. Der Fehler hält sich jedoch im einstelligen Prozent-Bereich und ist somit tolerierbar.\\
+Nachfolgend werden nun die berechneten Moden mittels Visualiserung ausgewertet, um sicherzustellen, dass die Eigenvektoren auch vergleichbar sind. Hierzu einige ausgewählte Beispiele:
+
+DREI AUSGEWÄHLTE BEISPIELE FÜR MODE 1 (10,67Hz / 10,45 Hz) - 5 (593,65 Hz / 580,54 Hz)  - 7 (878,38 Hz / 860,17 Hz)
+
+\subsection{Konvergenzanalyse - Vergleich $\mathbf{K}^{-1}, \mathbf{M}^{-1}, \mathbf{M}_{lumped}^{-1}$}
+
+
+\subsection{Instabilitäten \& weitere Methoden}
+
+
+\subsubsection{Hourglass Mode - reduzierte Integration - x- sehr kurz angeschnitten}
+\paragraph{Reduzierte Gaußquadratur 4 Stützstellen}
+\paragraph{Gaußquadratur 9 Stützstellen}
+
+\subsubsection{Singularität und Penalty-Methode}
+
+\subsubsection{reduzierte Steifigkeitsmatrix - Vorteile - Nachteile}
+\paragraph{Speicherintensiv - gerade für kompilierte Sprachen}
+Beispiele für relevante kompilierte Sprachen sind C, C++, Fortran, Cobol, Pascal
+Python ist das Gegenteil (Interpretierte Sprache)
+
+
+\section{Transiente Analyse - Newmark-Beta-Verfahren}
+
+
+
+\subsection{Transiente Analyse Validierung}
+Python vs. Ansys
+
+
+\subsection{Simulation Kragbalken, freie Schwingung}
+
+
+\subsection{Parameterstudie - Instabilität}
+
+
+\subsubsection{Bestimmen der Parameter}
+
+\subsubsection{Diskutieren der Ursachen}
+Verhalten diskutieren, ab welcher Instabilität ab bestimmter Schrittweite auftritt: Zum teil in 4.4 beantwrotet. sortieren
+
+\subsection{Vergleich für ausgewählte Parameter}
+$\beta = \si{0}$ und $\beta = \si{0,25}$ \\
+
+Zuletzt werden die Ergebnisse für ein konstantes $\gamma = 0,5$ mit $\beta_1 = 0$ und $\beta_2 = 0,25$ verglichen und diskutiert. Allgemein lassen sich anhand der gewählten Parameter die beiden Fälle wie folgt einordnen:
+\begin{enumerate}
+    \item für $\beta_1$: zentrale Differenzquotienten (Central Difference Scheme) %(\cite{Newmark, N.M. ASCE Journal of Engneering Mechanics Division, Vol 85, 1959}
+    \item für $\beta_2$: konstante Durchschnittsbeschleunigungsverfahren %(\cite{Newmark, N.M. ASCE Journal of Engneering Mechanics Division, Vol 85, 1959})
+\end{enumerate}
+Durch die Wahl von $\beta_1 = 0$ reduziert sich das Central Difference Scheme zu einem expliziten Verfahren. 
+Hinsichtlich der Stabilität unterscheiden sich die Verfahren. Das konstante Durchschnittbeschleunigungsverfahren ist unbedingt stabil %(\cite{https://handwiki.org/wiki/Newmark-beta_method?utm_source=chatgpt.com})
+und bedarf keiner Zeitschrittlängenbeschränkung nur aus Stabilitätsgründen. Im Gegensatz dazu ist das Central Difference Scheme nur bedingt stabil und bedarf einer Stabilitätsbedingung, welche lautet
+\begin{equation}
+    \Delta t \le \frac{2}{\omega_{max}}.
+\end{equation}
+Das bedeutet, dass je feiner diskretisiert wird, desto höher werden die Eigenfrequenzen und folglich kleiner die Zeitschrittlänge $\Delta t$, um die Stabilitätsbedingung zu erfüllen.
+Beide Verfahren haben ihre eigenen Vor- und Nachteile, welche bei der Parameterauswahl berücksichtigt werden müssen. So eignet sich das Central Difference Scheme gut für schnelle Verfahren mit hochfrequenten oder stark nichtlinearen Problemen, wie zum Beispiel komplexe Kontaktprobleme. Jedoch muss die Stabilitätsbedingung beachtet werden. Das konstante Durchschnittsbeschleunigungsverfahren eignet sich gut für stabile und langzeitige Simulationen, bei denen große Zeitschritte verwendet werden. Es ist jedoch nur auf lineare Probleme und einfache Kontaktprobleme anwendbar.
+

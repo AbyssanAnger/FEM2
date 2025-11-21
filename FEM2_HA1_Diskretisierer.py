@@ -5,9 +5,9 @@ import math
 import time as timemodule
 
 torch.set_default_dtype(torch.float64)
-torch.set_num_threads(8)
+torch.set_num_threads(16)
 
-disp_scaling = 50
+disp_scaling = 10
 toplot = True
 
 tdm = 2
@@ -22,12 +22,12 @@ def analysis():
     global tdm
     NEN = 4
     FORCE = -1000.0
-    LENGTH = 2.0  # m
+    LENGTH = 0.5  # m
     HEIGHT = 0.05  # m
     WIDTH = 0.05  # m (für Kraftberechnung, nicht für 2D-Netz)
 
-    NX = 120  # Anzahl der Elemente in Längsrichtung
-    NY = 10  # Anzahl der Elemente in Höhenrichtung
+    NX = 30  # Anzahl der Elemente in Längsrichtung
+    NY = 5  # Anzahl der Elemente in Höhenrichtung
 
     # Erzeuge Knoten
     x_coords = torch.linspace(0, LENGTH, NX + 1)

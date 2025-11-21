@@ -126,7 +126,108 @@ class FEMSolver:
         self.fext = self.K @ self.u
         self.frea = self.fext - self.fsur
 
-    def run(self):
-        """Führt Assembly und Solve aus."""
-        self.assemble()
-        self.solve()
+
+def compute_modes(
+    self, approach: str = "M_inv_K", num_modes: int = 10
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Berechnet Eigenfrequenzen ω (rad/s) und -vektoren für freie Schwingungen.
+    approach: 'K_inv_M' (1/√λ), 'M_inv_K' (√λ) oder 'lumped' (diagonale M).
+    """
+    if self.M is None:
+        raise ValueError("Assembliere zuerst mit assemble() – M fehlt.")
+    free_dofs = torch.nonzero(self.mesh.free_mask)[:, 0]
+    K_free = self.K[free_dofs][:, free_dofs]
+    M_free = self.M[free_dofs][:, free_dofs]
+    if torch.det(M_free) <= 0:
+        raise ValueError("M_free nicht positiv definit – prüfe Mesh/Material.")
+
+    if approach == "K_inv_M":
+        K_inv = torch.linalg.inv(K_free)
+        A = K_inv @ M_free
+        L, V = torch.linalg.eig(A)
+        omega = torch.sort(1 / torch.sqrt(L.real))[0][:num_modes]
+    elif approach == "M_inv_K":
+        M_inv = torch.linalg.inv(M_free)
+        A = M_inv @ K_free
+        L, V = torch.linalg.eig(A)
+        omega = torch.sort(torch.sqrt(L.real))[0][:num_modes]
+    elif approach == "lumped":
+        sum_m = torch.sum(M_free, dim=0)
+        M_lump_inv = torch.diag(1 / sum_m)
+        A = M_lump_inv @ K_free
+        L, V = torch.linalg.eig(A)
+        omega = torch.sort(torch.sqrt(L.real))[0][:num_modes]
+    else:
+        raise ValueError("approach muss 'K_inv_M', 'M_inv_K' oder 'lumped' sein.")
+
+    print(f"Eigenfrequenzen ({approach}, erste {num_modes}): {omega}")
+    return omega, V[:, :num_modes]  # ω sortiert, Vektoren (nicht normalisiert)
+
+
+# NEU: Transient-Analyse
+def solve_transient(
+    self,
+    dt: float,
+    total_time: float,
+    beta: float = 0.25,
+    gamma: float = 0.5,
+    f_ext_func=None,
+) -> dict:
+    """
+    Newmark-Zeitintegration für dynamische Analyse.
+    f_ext_func: Optional callable(t) -> f_ext (Tensor [total_dofs, 1]).
+    Returns: {'t': list, 'u': list[Tensors], 'v': list[Tensors]}.
+    """
+    if self.M is None:
+        raise ValueError("Assembliere zuerst mit assemble() M fehlt.")
+    steps = int(total_time / dt)
+    K_tilde = self.K + self.mesh.drlt_matrix
+    u = (
+        self.u.clone() if self.u is not None else torch.zeros(self.ndf * self.nnp, 1)
+    )  # Von static starten
+    v = torch.zeros_like(u)
+    # Initial a_0 = M^{-1} (f_ext(0) - K_tilde u)
+    f_ext0 = f_ext_func(0) if f_ext_func else torch.zeros_like(u)
+    a = torch.linalg.solve(self.M, f_ext0 - K_tilde @ u)
+
+    K_eff = K_tilde + (1 / (beta * dt**2)) * self.M
+    history = {"t": [], "u": [], "v": []}
+
+    for s in range(steps):
+        t = s * dt
+        f_ext = f_ext_func(t) if f_ext_func else torch.zeros_like(u)
+
+        # Newmark-Update
+        F1 = f_ext + self.M @ (
+            (1 / (beta * dt**2)) * u
+            + (1 / (beta * dt)) * v
+            + ((1 - 2 * beta) / (2 * beta)) * a
+        )
+        u_new = torch.linalg.solve(K_eff, F1)
+        a_new = (
+            (1 / (beta * dt**2)) * (u_new - u)
+            - (1 / (beta * dt)) * v
+            - ((1 - 2 * beta) / (2 * beta)) * a
+        )
+        v_new = v + dt * ((1 - gamma) * a + gamma * a_new)
+
+        u, v, a = u_new, v_new, a_new
+        history["t"].append(t + dt)
+        history["u"].append(u.clone())
+        history["v"].append(v.clone())
+
+        # Optional: Plot alle 10 Steps (importiere aus utils.py)
+        # if s % 10 == 0:
+        #     self._plot_step(u, s)  # Implementiere als private Methode
+
+    print(
+        f"Transient-Analyse abgeschlossen: {steps} Steps, finale ||u|| = {torch.norm(u):.2e}"
+    )
+    return history
+
+
+def run(self):
+    """Führt Assembly und Solve aus."""
+    self.assemble()
+    self.solve()

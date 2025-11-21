@@ -1,0 +1,38 @@
+% --- Kopf- & Fußzeilen ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+
+% --- Hypersetup ---
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=black,
+  urlcolor=blue
+}
+
+% --- Caption ---
+\captionsetup{
+  margin=10pt,
+  font=footnotesize,
+  labelfont=bf,
+  format=hang,
+  justification=centering,
+  singlelinecheck=off
+}
+
+% --- Nummerierungen ---
+\numberwithin{equation}{section}
+
+% --- TikZ/PGFPlots ---
+\pgfplotsset{compat=1.18}
+\pgfkeys{/pgf/number format/min exponent for 1000 sep={10000}}
+
+% --- SI-Units ---
+\sisetup{
+  per-mode = fraction,      % Schreibweise m/s statt m s^{-1}
+  separate-uncertainty = true,
+  locale = DE,              % Komma als Dezimaltrennzeichen
+  detect-weight = true,     % fette Zahlen bei fettem Text
+  detect-family = true      % Schrift anpassen
+}

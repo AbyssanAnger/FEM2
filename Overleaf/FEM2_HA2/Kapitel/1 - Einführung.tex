@@ -1,0 +1,118 @@
+\section{Methodik}
+
+\subsection{Modalanalyse}
+Die Modalanalyse beschreibt das freie Schwingverhalten von Strukturen ohne eine Einwirkung durch äußere Kräfte. Mittels der Modalanalyse lassen sich die Eigenfrequenzen und die dazugehörigen Eigenmoden / Eigenschwingungsformen bestimmen und daraus Informationen über das Resonanzverhalten ableiten. Es sei an dieser Stelle angemerkt, dass die Schingung in einer Mode unabhängig beziehungsweise entkoppelt ist von den Schwingungen der restlichen Moden. Hintergrund ist die Orthogonalität der Eigenvektoren zueinander sowie der Eigenmoden bezüglich der Steifigkeits- und Massenmatrix.
+Eine freie Schwingung bedeutet, dass keine Dämpfung als auch äußere Belastung vorliegt. Die Bewegungsdifferentialgleichung lässt sich somit reduzieren zu
+\begin{equation}
+    M\cdot \Ddot{u} + K \cdot u = 0.
+\end{equation}
+Mittels eines harmonischen Lösungansatzes, ergibt sich das allgemeine Matrizeneigenwertproblem
+\begin{equation}
+    (K - \omega^2 M)u = 0.
+\end{equation}
+Dieses lässt sich mittels zweier numerischer Lösungsansätze, entweder durch Inversion der Massenmatrix oder der Steifigkeitsmatrix, lösen. Es ergeben sich für den Ansatz der Inversion der Massenmatrix die Gleichung
+\begin{equation}
+    I - \omega^2 K^{-1}M\varphi = 0
+\end{equation}
+und 
+\begin{equation}
+    A\varphi = \lambda \varphi 
+\end{equation}
+mit
+\begin{equation}
+    A = M^-1K, 
+\quad \lambda = \omega^2
+\end{equation}
+Für den alternativen Ansatz der Inversion der Steifigkeitsmatrix ergibt sich entsprechend
+\begin{equation}
+    I - \omega^2 K^{-1}M \varphi = 0
+\end{equation}
+Durch Umformung erhält man die klassische Eigenwertdarstellung
+\begin{equation}
+    K^{-1}M\varphi = \frac{1}{\omega^2}\varphi,
+\end{equation}
+welche sich in kompakter Form schreiben lässt als
+\begin{equation}
+    A\varphi = \lambda\varphi,
+\end{equation}
+mit
+\begin{equation}
+    A = K^{-1}M,
+    \qquad
+    \lambda = \frac{1}{\omega^2}.
+\end{equation}
+Hierbei stellt $\lambda_i$ den reziproken Eigenwert dar, aus dem die Eigenkreisfrequenzen nach
+\[
+\omega_i = \frac{1}{\sqrt{\lambda_i}}
+\]
+bestimmt werden. Dieses Vorgehen liefert die gleichen Eigenmoden wie die Inversion der Massenmatrix, unterscheidet sich jedoch in der numerischen Stabilität und der Skalierung der Eigenwerte.
+
+\subsection{Quadratische Elemente Q4 vs Q8/Q9}
+Für die erste Hausaufgabe wurde ein lineares quadratisches Element genutzt. Dieses Element ist auch unter dem Namen: Q4 (\cref{fig:Q4 Quadratisches Element}) bekannt. Der erste Knoten links unten wird hier mit 1 beziffert, die Zählkonvention läuft dann gegen den Uhrzeigersinn.
+Es besitzt nur Eckknoten und kann somit nur lineare Ansätze nutzen, was die Genauigkeit aber dafür auch den Rechenaufwand gering hält. \cite[S. 126 ff.]{eth_zurich_introduction_nodate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.22\linewidth]{Bilder/Q4 Elemente.png}
+    \caption{Q4 Quadratisches Element \cite{eth_zurich_introduction_nodate}}
+    \label{fig:Q4 Quadratisches Element}
+\end{figure}
+
+Die in \cref{fig:Q8 und Q9 Quadratische Elemente} gezeigten Q8- und Q9-Elemente erweitern dieses Konzept um Mittelknoten zwischen den Eckknoten bzw. einen zusätzlichen Zentrumsknoten.
+Dadurch entstehen quadratische Ansatzfunktionen, die gekrümmte Geometrien und Spannungsverläufe deutlich genauer abbilden können. Die Knotenfolge bleibt dabei konsistent im Umlaufsinn – bei Q8 über die Randknoten, bei Q9 mit zusätzlichem Mittelpunkt – was eine eindeutige Interpolation sicherstellt.
+Elemente mit Q8-Charakter, auch als Serendipity-Elemente bekannt, stehen den Q9-Elementen in der Genauigkeit kaum nach, sind dafür aber erkennbar weniger Rechenaufwendig. \cite[S. 131 f.]{eth_zurich_introduction_nodate}
+
+
+\begin{figure}[ht]
+    \centering
+\includegraphics[width=0.5\linewidth]{Bilder/Q8 vs Q9.png}
+    \caption{Q8 und Q9 Quadratische Elemente \cite{eth_zurich_introduction_nodate}}
+    \label{fig:Q8 und Q9 Quadratische Elemente}
+\end{figure}
+
+\subsubsection{Ansatzfunktionen}
+Die Ansatzfunktionen der Q4-Elemente basieren auf einer bilinearen Interpolation mit vier Eckknoten. Dies führt zu linearen Polynomen in $\xi$ und $\eta$. Die Shape-Funktionen lauten:
+$$N_i(\xi, \eta) = \frac{1}{4}(1 \pm \xi)(1 \pm \eta).$$
+Dies ermöglicht eine einfache, aber grobe Approximation von Verschiebungen und Spannungen innerhalb des Elements, die nur konstante Gradienten abbildet.
+Im Gegensatz dazu nutzen Q8-Elemente (Serendipity) quadratische Ansatzfunktionen mit acht Knoten (vier Ecken und vier Mittelkanten). Die Shape-Funktionen erweitern sich zu:
+$$N_i(\xi, \eta) = -\frac{1}{4}(1 \pm \xi)(1 \pm \eta)(1 \pm \xi \eta)$$
+für Eckknoten und
+$$N_i(\xi, \eta) = \frac{1}{2}(1 - \xi^2)(1 \pm \eta)$$
+für Mittelkanten. Dadurch können gekrümmte Ränder und quadratische Verläufe präziser dargestellt werden, was die Genauigkeit bei komplexen Geometrien und Spannungssingularitäten verbessert.
+Der Mehraufwand ergibt sich aus der Verdopplung der Freiheitsgrade pro Element (von 8 auf 16 in 2D), was die Elementsteifigkeitsmatrix von $4 \times 4$ auf $8 \times 8$ (oder größer) aufbläht und die Integrationspunkte (z.,B. $3 \times 3$ statt $2 \times 2$) erhöht. Dies steigert den Rechenaufwand um etwa das Vierfache pro Element, bei vergleichbarer Genauigkeit zu Q9-Elementen mit Zentrumsknoten. \cite[S. 126--132]{eth_zurich_introduction_nodate}
+
+
+\subsection{transiente Analyse}
+Die transiente Analyse untersucht das zeitabhängige Verhalten eines Systems, d.h. wie sich Verschiebungen, Spannungen, Beschleunigungen etc. über die Zeit verändern, wenn das System einer bestimmten Belastung (z.B. Kräften, Stößen, Impulsen) ausgesetzt wird. Strukturantwort wird dargstellt in Abhängigkeit der Zeit. Um eine transiente Strukturantwort aufgrund äußerer zeitabhängiger Kräfte zu bestimmen, brauchen wir 
+\begin{equation}
+    M\ddot{u_i}+C\dot{u_i}+Ku_i = f_i(t)    
+\end{equation}
+über die Zeit integrieren. Dafür gibt es grundsätzlich 2 Optionen:
+\begin{enumerate}
+    \item \textbf{Modalreduktion}: Gleichungssystem wird reduziert beziehungsweise in einen Unterraum transformiert mittels Transformationsmatrix. Effizienteste Transformationsmatrix: Modalmatrix (Spalten sind Eigenmoden; Moden sind orhtognonal zueinander bezüglich Massen- und Steifigkeitsmatrix). Somit ist eine Modalanalyse vorher Pflicht!
+    \item \textbf{Direkte Zeitintegration}: es findet keine Transformation in Unterraum statt. Numerisch sehr anspruchsvoll, kann jedoch durch eine vorherige Modalanalyse beeinflusst werden, um den Rechenaufwand vermindern. Eine Modalanalyse ist als erster Schritt jedoch grundsätzlich bei einer dynamischen Analyse eines Systems zu empfehlen.
+\end{enumerate}
+
+Das Newmark-Beta-Verfahren gehört zur Kategorie der direkten Zeitintegration. Direkte Zeitintegration bedeutet, dass die Lösung ohne vorige Transformation in einen Unterraum, beziehungsweise ohne Modellreduktion, erfolgt. 
+Wir nutzen also die sogenannten physikalischen Freiheitsgrade / Knotenverschiebungen. 
+Die direkte Zeitintegration lässt sich unterscheiden in die \textbf{implizite} und \textbf{explizite} Zeitintegration. Das Newmark-Beta-Verfahren gehört zu der impliziten Zeitintegration.
+
+\subsubsection{Newmark-Beta-Verfahren}
+Das Newmark-Beta-Verfahren ist ein weit verbreitetes implizites Zeitintegrationsverfahren zur numerischen Lösung der Bewegungsgleichung elastischer Strukturen. Es basiert auf der Annahme, dass Verschiebung, Geschwindigkeit und Beschleunigung innerhalb eines Zeitschritts~$\Delta t$ durch eine vorgegebene Interpolationsform beschrieben werden, welche durch die beiden Parameter $\beta$ und $\gamma$ festgelegt wird. Für die häufig verwendete Wahl
+\begin{equation}
+    \beta = \frac{1}{4}, 
+    \qquad 
+    \gamma = \frac{1}{2},
+\end{equation}
+ergibt sich das sogenannte Modell konstanter mittlerer Beschleunigung, das als unbedingt stabil gilt und daher in der strukturdynamischen FEM als Standardverfahren eingesetzt wird.
+
+Die Grundidee des Verfahrens besteht darin, die Bewegungsgleichung nicht zu jedem Zeitpunkt exakt zu erfüllen, sondern lediglich in diskreten Zeitpunkten. Innerhalb eines Zeitschritts werden die kinematischen Größen mithilfe der Newmark-Integrationsformeln aktualisiert. Dadurch reduziert sich die Berechnung pro Zeitschritt auf die Lösung eines modifizierten quasistatischen Gleichgewichts unter Berücksichtigung von Trägheits- und Dämpfungskräften, sodass etablierte lineare statische Lösungsstrategien direkt angewendet werden können.
+
+Typische Anwendungsschritte des Verfahrens umfassen:
+\begin{itemize}
+    \item die Wahl der Zeitschrittweite~$\Delta t$, abhängig von der maximal interessierenden Frequenz,
+    \item die Festlegung der Gesamtdauer der Analyse und daraus resultierend der Anzahl der Zeitschritte,
+    \item die iterative Aktualisierung von Verschiebungen, Geschwindigkeiten und Beschleunigungen durch Lösen eines modifizierten Gleichungssystems pro Zeitschritt.
+\end{itemize}
+
+Aufgrund seiner Stabilität, Flexibilität und vergleichsweise einfachen Implementierung zählt das Newmark-Beta-Verfahren zu den am häufigsten eingesetzten Verfahren der transienten FEM-Analyse.

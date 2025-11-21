@@ -21,7 +21,7 @@ def master_element(qpt, nen=4):
         N[q, 0] = 0.25 * (1 - xi[0]) * (1 - xi[1])  # SW
         N[q, 1] = 0.25 * (1 + xi[0]) * (1 - xi[1])  # SE
         N[q, 2] = 0.25 * (1 + xi[0]) * (1 + xi[1])  # NE
-        N[q, 3] = 0.25 * (1 - xi[0]) * (1 + xi[1])  # NW
+        N[q, 3] = 0.25 * (1 - xi[0]) * (1 + xi[1])  # NWJJ
 
         # Ableitungen gamma (∂N/∂ξ, ∂N/∂η) – VOLLSTÄNDIG!
         # Knoten 0 (SW)
