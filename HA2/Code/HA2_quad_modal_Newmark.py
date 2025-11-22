@@ -480,8 +480,7 @@ def analysis():
                    "Spannung YY", 
                    "Von-Mises-Spannung", 
                    "Verschiebung u_x", 
-                   "Verschiebung u_y", 
-                   "Dehnung XX"]
+                   "Verschiebung u_y"]
     ei = torch.eye(3,3)
     # Die Größe von plotdata ist nicht mehr kritisch, da wir Knotenergebnisse plotten
     plotdata = torch.zeros(len(plot_titles), nel*nqp, 3)
@@ -602,7 +601,7 @@ def analysis():
         ax.axis('equal')
 
     # --- NEU: Letzter Plot - Spannungsverlauf bei L/2 ---
-    ax_cross_section = plt.subplot(3,3,8) # Plot an Position 8
+    ax_cross_section = plt.subplot(3,3,7) # Plot an Position 8
     
     # Finde Knoten in der Mitte des Balkens (x = L/2)
     mid_point_x = length / 2.0
@@ -640,7 +639,8 @@ def analysis():
 
 # #####NEWMARK-TIME INTEGRATION SCHEME STARTS HERE#####
 
-    ax = plt.subplot(3,3,9) # Subplots im 3x3 Raster an Position 9
+    ax = plt.subplot(3,3,8) # Subplots im 3x3 Raster an Position 9
+    ax_u= plt.subplot(3,3,9)
     
     # Parameter definition for Newmark time integration
     time_intervall = .01 # total time of simulation
@@ -677,16 +677,58 @@ def analysis():
 
     # end of parameter definition
     # Newmark time integration loop
+    # 1. VOR DER SCHLEIFE: Listen initialisieren und leeres Linien-Objekt erstellen
+    time_history = [] 
+    disp_history = []
+
+    # Wir plotten eine leere blaue Linie ('b-') in ax_u. 
+    # Das Komma nach 'line_u' ist wichtig, da plot() eine Liste zurückgibt!
+    line_u, = ax_u.plot([], [], 'bo-', linewidth=1, markersize=4, label="u_x Verlauf")
+
     for s in range(steps):
         
-        
-        ax.cla() # Clear axis for fresh plot
+        # --- Dein bestehender Code für ax (Struktur) ---
+        ax.cla() 
         ax.set_xlim([ -0.1*length, 1.1*length ])
         ax.set_ylim([ -5*height, 5*height ])
         ax.set_title(f"Time Integration Step {s+1}/{steps} - Zeitschritt {dt} s")
         ax.set_xlabel("x [m]")
         ax.set_ylabel("y [m]")
         ax.grid(True)
+
+        # --- Berechnung der aktuellen Werte ---
+        time_current = (s+1) * dt
+        u_last_node = u_0[-1, 0] * disp_scaling # u_x
+
+        # 2. IN DER SCHLEIFE: Werte an die Historie anhängen
+        time_history.append(time_current)
+        disp_history.append(u_last_node)
+
+        # --- Plotting für ax_u (Zeitverlauf) ---
+        # WICHTIG: ax_u.cla() bleibt auskommentiert oder wird gelöscht!
+        # Wir wollen die Achsen-Beschriftung nicht jedes Mal neu schreiben müssen.
+        
+        # Achsen-Setup nur nötig, wenn es sich ändern soll (z.B. mitwachsendes Fenster).
+        # Falls die Grenzen fest sind, besser VOR die Schleife ziehen.
+        ax_u.set_xlim([0, time_intervall + dt])
+        # Wenn u_reshaped konstant ist, setz das Limit besser VOR der Schleife fix.
+        # Falls es sich ändert, lass es hier:
+        ax_u.set_ylim([ -20*disp_scaling*torch.max(u_reshaped), 20*disp_scaling*torch.max(u_reshaped) ])
+        
+        # Titel/Labels müssen nicht in der Schleife gesetzt werden, wenn wir nicht cla() nutzen,
+        # aber zur Sicherheit kann es hier stehen bleiben.
+        ax_u.set_title("Verschiebung u_x am letzten Knoten über die Zeit")
+        ax_u.set_xlabel("Zeit [s]")
+        ax_u.set_ylabel("Verschiebung u_x [m]")
+        ax_u.grid(True)
+
+        # 3. UPDATE: Das existierende Linien-Objekt mit den neuen Daten füttern
+        line_u.set_data(time_history, disp_history)
+        
+        # Optional: Zusätzlich den aktuellen Punkt als roten Punkt markieren (wandert mit)
+        # Dazu bräuchtest du ein zweites Objekt "point_u, = ..."
+        # ax_u.plot(time_current, u_last_node, 'ro') # Das würde aber wieder Punkte hinterlassen
+
 
         for e in range(nel):
             els = torch.index_select(elems[e,:], 0, indices) # Beispielhaft für ein Element [0,4,1,5,2,6,3,7,0]
