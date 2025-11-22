@@ -683,7 +683,7 @@ def analysis():
         ax.cla() # Clear axis for fresh plot
         ax.set_xlim([ -0.1*length, 1.1*length ])
         ax.set_ylim([ -5*height, 5*height ])
-        ax.set_title(f"Time Integration Step {s+1}/{steps}")
+        ax.set_title(f"Time Integration Step {s+1}/{steps} - Zeitschritt {dt} s")
         ax.set_xlabel("x [m]")
         ax.set_ylabel("y [m]")
         ax.grid(True)
