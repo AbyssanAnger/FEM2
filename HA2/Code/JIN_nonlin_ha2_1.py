@@ -40,14 +40,15 @@ def analysis():
     def get_analytical_freqs(num_modes=7):
         """Compute analytical natural frequencies f_n [Hz] for a cantilever beam."""
         A = width * height
-        I_z = width * height ** 3 / 12.0
+        I_z = width * height**3 / 12.0
 
         # beta_n * L Werte für Moden 1 bis 7
-        betasL = torch.tensor([1.875, 4.694, 7.855, 10.996, 14.137, 17.279, 20.420],
-                              dtype=torch.float64)[:num_modes]
+        betasL = torch.tensor(
+            [1.875, 4.694, 7.855, 10.996, 14.137, 17.279, 20.420], dtype=torch.float64
+        )[:num_modes]
 
-        const = math.sqrt(E * I_z / (rho * A * length ** 4))
-        omega_ana = betasL ** 2 * const
+        const = math.sqrt(E * I_z / (rho * A * length**4))
+        omega_ana = betasL**2 * const
         f_ana = omega_ana / (2.0 * math.pi)
         return f_ana
 
@@ -57,7 +58,7 @@ def analysis():
     # Knoten erzeugen
     x_coords = torch.linspace(0, length, 2 * nx + 1)
     y_coords = torch.linspace(0, height, 2 * ny + 1)
-    x_grid, y_grid = torch.meshgrid(x_coords, y_coords, indexing='ij')
+    x_grid, y_grid = torch.meshgrid(x_coords, y_coords, indexing="ij")
     x = torch.stack((x_grid.flatten(), y_grid.flatten()), dim=1)
 
     # Elemente erzeugen (Q8 Konnektivität)
@@ -90,7 +91,7 @@ def analysis():
     drlt = torch.tensor([item for sublist in drlt_list for item in sublist])
 
     # Kraft (Neumann Randbedingung)
-    total_force = - F / width
+    total_force = -F / width
     right_nodes = torch.where(x[:, 0] == length)[0]
     force_per_node = total_force / len(right_nodes)
     neum_list = [[node_idx, 1, force_per_node] for node_idx in right_nodes]
@@ -101,7 +102,7 @@ def analysis():
 
     # Materialtensor
     C4 = torch.zeros(2, 2, 2, 2)
-    factor = E / (1 - nu ** 2)
+    factor = E / (1 - nu**2)
     C4[0, 0, 0, 0] = factor
     C4[1, 1, 1, 1] = factor
     C4[0, 0, 1, 1] = factor * nu
@@ -174,27 +175,42 @@ def analysis():
         masterelem_N[q, 7] = 0.5 * (1 - e) * (1 - n * n)
 
         # Ableitungen d/de
-        masterelem_gamma[q, 0, 0] = 0.25 * (1 - n) * (-1) * (-e - n - 1) + 0.25 * (1 - e) * (1 - n) * (-1)
-        masterelem_gamma[q, 1, 0] = 0.25 * (1 - n) * (1) * (e - n - 1) + 0.25 * (1 + e) * (1 - n) * (1)
-        masterelem_gamma[q, 2, 0] = 0.25 * (1 + n) * (1) * (e + n - 1) + 0.25 * (1 + e) * (1 + n) * (1)
-        masterelem_gamma[q, 3, 0] = 0.25 * (1 + n) * (-1) * (-e + n - 1) + 0.25 * (1 - e) * (1 + n) * (-1)
+        masterelem_gamma[q, 0, 0] = 0.25 * (1 - n) * (-1) * (-e - n - 1) + 0.25 * (
+            1 - e
+        ) * (1 - n) * (-1)
+        masterelem_gamma[q, 1, 0] = 0.25 * (1 - n) * (1) * (e - n - 1) + 0.25 * (
+            1 + e
+        ) * (1 - n) * (1)
+        masterelem_gamma[q, 2, 0] = 0.25 * (1 + n) * (1) * (e + n - 1) + 0.25 * (
+            1 + e
+        ) * (1 + n) * (1)
+        masterelem_gamma[q, 3, 0] = 0.25 * (1 + n) * (-1) * (-e + n - 1) + 0.25 * (
+            1 - e
+        ) * (1 + n) * (-1)
         masterelem_gamma[q, 4, 0] = 0.5 * (-2 * e) * (1 - n)
         masterelem_gamma[q, 5, 0] = 0.5 * (1) * (1 - n * n)
         masterelem_gamma[q, 6, 0] = 0.5 * (-2 * e) * (1 + n)
         masterelem_gamma[q, 7, 0] = 0.5 * (-1) * (1 - n * n)
 
         # Ableitungen d/dn
-        masterelem_gamma[q, 0, 1] = 0.25 * (1 - e) * (-1) * (-e - n - 1) + 0.25 * (1 - e) * (1 - n) * (-1)
-        masterelem_gamma[q, 1, 1] = 0.25 * (1 + e) * (-1) * (e - n - 1) + 0.25 * (1 + e) * (1 - n) * (-1)
-        masterelem_gamma[q, 2, 1] = 0.25 * (1 + e) * (+1) * (e + n - 1) + 0.25 * (1 + e) * (1 + n) * (1)
-        masterelem_gamma[q, 3, 1] = 0.25 * (1 - e) * (+1) * (-e + n - 1) + 0.25 * (1 - e) * (1 + n) * (1)
+        masterelem_gamma[q, 0, 1] = 0.25 * (1 - e) * (-1) * (-e - n - 1) + 0.25 * (
+            1 - e
+        ) * (1 - n) * (-1)
+        masterelem_gamma[q, 1, 1] = 0.25 * (1 + e) * (-1) * (e - n - 1) + 0.25 * (
+            1 + e
+        ) * (1 - n) * (-1)
+        masterelem_gamma[q, 2, 1] = 0.25 * (1 + e) * (+1) * (e + n - 1) + 0.25 * (
+            1 + e
+        ) * (1 + n) * (1)
+        masterelem_gamma[q, 3, 1] = 0.25 * (1 - e) * (+1) * (-e + n - 1) + 0.25 * (
+            1 - e
+        ) * (1 + n) * (1)
         masterelem_gamma[q, 4, 1] = 0.5 * (1 - e * e) * (-1)
         masterelem_gamma[q, 5, 1] = 0.5 * (1 + e) * (-2 * n)
         masterelem_gamma[q, 6, 1] = 0.5 * (1 - e * e) * (1)
         masterelem_gamma[q, 7, 1] = 0.5 * (1 - e) * (-2 * n)
 
     indices = torch.tensor([0, 4, 1, 5, 2, 6, 3, 7, 0])
-
 
     ############## Matrix Assembly ###############
     u = torch.zeros(ndf * nnp, 1)
@@ -234,7 +250,8 @@ def analysis():
             Je = xe.mm(gamma)
             detJe = torch.det(Je)
 
-            if detJe <= 0: print("Error: detJe <= 0")
+            if detJe <= 0:
+                print("Error: detJe <= 0")
 
             dv = detJe * w8[q] * width  # Breitenkorrektur enthalten!
             invJe = torch.inverse(Je)
@@ -247,14 +264,20 @@ def analysis():
             for A in range(nen):
                 G_A[0, :] = G[A, :]
                 fintA = dv * (G_A.mm(stre_2d))
-                finte[A * ndf: A * ndf + ndm] += fintA.t()
+                finte[A * ndf : A * ndf + ndm] += fintA.t()
                 for B in range(nen):
-                    KAB = torch.tensordot(G[A, :],
-                                          (torch.tensordot(C4[0:tdm, 0:tdm, 0:tdm, 0:tdm], G[B, :], [[3], [0]])),
-                                          [[0], [0]])
-                    Ke[A * ndf:A * ndf + ndm, B * ndf:B * ndf + ndm] += dv * KAB
+                    KAB = torch.tensordot(
+                        G[A, :],
+                        (
+                            torch.tensordot(
+                                C4[0:tdm, 0:tdm, 0:tdm, 0:tdm], G[B, :], [[3], [0]]
+                            )
+                        ),
+                        [[0], [0]],
+                    )
+                    Ke[A * ndf : A * ndf + ndm, B * ndf : B * ndf + ndm] += dv * KAB
                     MAB = rho * N[A] * N[B] * I[0:ndm, 0:ndm]
-                    Me[A * ndf:A * ndf + ndm, B * ndf:B * ndf + ndm] += dv * MAB
+                    Me[A * ndf : A * ndf + ndm, B * ndf : B * ndf + ndm] += dv * MAB
 
         fint[gdof[el, :]] += finte
         fvol[gdof[el, :]] += fvole
@@ -309,8 +332,9 @@ def analysis():
 
     # Ergebnisse ausgeben
     def first_freq(omega_tensor):
-        if omega_tensor.numel() == 0: return 0.0
-        return (omega_tensor[0].item() / (2.0 * math.pi))
+        if omega_tensor.numel() == 0:
+            return 0.0
+        return omega_tensor[0].item() / (2.0 * math.pi)
 
     f1_K = first_freq(omega_K_sorted)
     f1_M = first_freq(omega_M_sorted)
@@ -329,7 +353,8 @@ def analysis():
     def top_f(omega_tensor):
         res = np.zeros(num_modes_text)
         n = min(num_modes_text, omega_tensor.numel())
-        if n > 0: res[:n] = omega_tensor[:n].detach().numpy() / (2.0 * math.pi)
+        if n > 0:
+            res[:n] = omega_tensor[:n].detach().numpy() / (2.0 * math.pi)
         return res
 
     f_k_top = top_f(omega_K_sorted)
@@ -352,68 +377,61 @@ def analysis():
     fext = K * u
     frea = fext - fvol - fsur
 
-
-
-
     # ==========================================
     # [Änderung 3] Abbildung 2: Modenformen (1 ~ 7)
     # ==========================================
     if toplot:
         omega_K_unsorted = 1.0 / torch.sqrt(vals_K.real)
-        mask = ~torch.isinf(omega_K_unsorted) & ~torch.isnan(omega_K_unsorted) & (omega_K_unsorted.real > 0)
+        mask = (
+            ~torch.isinf(omega_K_unsorted)
+            & ~torch.isnan(omega_K_unsorted)
+            & (omega_K_unsorted.real > 0)
+        )
         valid_indices = torch.nonzero(mask).flatten()
         omega_valid = omega_K_unsorted[mask]
         sorted_indices = torch.argsort(omega_valid)
         final_indices = valid_indices[sorted_indices]
 
-        plt.figure(2, figsize=(18, 8))  # breitere Plotfläche
-        plt.suptitle(f"Modenformen (1 bis 7)", fontsize=16)
-
-        num_plot_modes = 7
-
-        rows, cols = 2, 4
-
-
+        # Erste drei Modi als einzelne Figures darstellen und speichern
+        num_plot_modes = 3
         for i in range(num_plot_modes):
             idx = final_indices[i]
             mode_shape = vecs_K[:, idx].real
             full_mode = torch.zeros(nnp * ndf, 1)
             full_mode[free_dofs, 0] = mode_shape
             u_mode = full_mode.reshape(-1, 2)
-
             # Automatische Skalierung
             scale_factor = 2 * height / (torch.max(torch.abs(u_mode)) + 1e-20)
             x_mode = x + u_mode * scale_factor
 
-            ax = plt.subplot(rows, cols, i + 1)
+            plt.figure(i + 1, figsize=(10, 6))
             freq = omega_valid[sorted_indices[i]] / (2 * math.pi)
-            ax.set_title(f"Modus {i + 1} ({freq:.2f} Hz)")
-
+            plt.title(f"Modus {i + 1} ({freq:.2f} Hz)", fontsize=16)
             for e in range(nel):
                 els = torch.index_select(elems[e, :], 0, indices)
-                ax.plot(x_mode[els, 0], x_mode[els, 1], 'b-', linewidth=0.5)
+                plt.plot(x_mode[els, 0], x_mode[els, 1], "b-", linewidth=0.5)
+            plt.axis("equal")
+            plt.grid(True)
+            plt.savefig(f"modus_{i+1}_eigenform.png", dpi=300, bbox_inches="tight")
+        plt.show()
 
-            ax.axis('equal')
-            ax.grid(True)
-
-                # Analytisch vs FEM Frequenzen
-        ax_modal = plt.subplot(rows, cols, 8)
-        ax_modal.set_title("Modale Frequenzen: Analytisch vs FEM")
-        ax_modal.plot(modes, f_ana, 'ko-', label='Analytisch')
-        ax_modal.plot(modes, f_k_top, 'rs--', label='K^-1 M')
-        ax_modal.plot(modes, f_m_top, 'b^:', label='M^-1 K')
-        ax_modal.plot(modes, f_l_top, 'gx-.', label='Geklumpte M')
-        
-        ax_modal.grid(True)
-        ax_modal.legend()
-        ax_modal.set_xlabel("Modus")
-        ax_modal.set_ylabel("Frequenz [Hz]")
-
+    # Optional: Vergleichsplot der Frequenzen (kann beibehalten werden)
+    plt.figure(4, figsize=(10, 6))
+    plt.title("Modale Frequenzen: Analytisch vs FEM")
+    plt.plot(modes, f_ana, "ko-", label="Analytisch")
+    plt.plot(modes, f_k_top, "rs--", label="K^-1 M")
+    plt.plot(modes, f_m_top, "b^:", label="M^-1 K")
+    plt.plot(modes, f_l_top, "gx-.", label="Geklumpte M")
+    plt.grid(True)
+    plt.legend()
+    plt.xlabel("Modus")
+    plt.ylabel("Frequenz [Hz]")
+    plt.savefig("frequenzvergleich.png", dpi=300, bbox_inches="tight")
 
     plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     start_perfcount = timemodule.perf_counter()
     analysis()
     end_perfcount = timemodule.perf_counter()
