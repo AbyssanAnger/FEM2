@@ -406,7 +406,7 @@ def analysis():
 
             plt.figure(i + 1, figsize=(10, 6))
             freq = omega_valid[sorted_indices[i]] / (2 * math.pi)
-            plt.title(f"Modus {i + 1} ({freq:.2f} Hz)", fontsize=16)
+            plt.title(f"Eigenmode {i + 1} ({freq:.2f} Hz)", fontsize=16)
             for e in range(nel):
                 els = torch.index_select(elems[e, :], 0, indices)
                 plt.plot(x_mode[els, 0], x_mode[els, 1], "b-", linewidth=0.5)
@@ -424,7 +424,7 @@ def analysis():
     plt.plot(modes, f_l_top, "gx-.", label="Geklumpte M")
     plt.grid(True)
     plt.legend()
-    plt.xlabel("Modus")
+    plt.xlabel("Eigenmode")
     plt.ylabel("Frequenz [Hz]")
     plt.savefig("frequenzvergleich.png", dpi=300, bbox_inches="tight")
 
