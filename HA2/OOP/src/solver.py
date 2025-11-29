@@ -172,14 +172,21 @@ class FEMSolver:
         
         # Berechnung Frequenzen
         l_val = torch.sqrt(L.real)
-        l_val = torch.sort(l_val).values
+        
+        # Sortieren
+        sorted_indices = torch.argsort(l_val)
+        l_val = l_val[sorted_indices]
+        V = V[:, sorted_indices] # Eigenvektoren mitsortieren
+        
         freq = l_val / (2.0 * math.pi)
         
         # Filter: Nur Frequenzen > Threshold
-        self.frequencies = freq[freq > f_threshold]
+        mask = freq > f_threshold
+        self.frequencies = freq[mask]
+        self.eigenvectors = V[:, mask]
         
         # Rückgabe der ersten N Moden
-        return self.frequencies[:num_modes]
+        return self.frequencies[:num_modes], self.eigenvectors[:, :num_modes]
 
     def newmark_time_integration(self, beta=0.25, gamma=0.5, dt=0.01, steps=1000, disp_scaling=1.0):
         """Führt eine transiente Analyse mit Newmark-Zeitintegration durch."""
@@ -249,8 +256,8 @@ class FEMSolver:
             u_0 = u_1
             v_0 = v_1
             a_0 = a_1
-            
-        return time_history, disp_history
+
+            yield time_current, u_1, u_last_node_x
 
     def solve(self):
         """Löst das lineare System Ku = F mit Penalty-Methode."""

@@ -346,7 +346,7 @@ def analysis():
     print(f"  Lumped M : {f1_L:.4f} Hz")
 
     # [Änderung 2] Anzahl der Modi zum Vergleich auf 7 erhöht
-    num_modes_text = 7
+    num_modes_text = 4
     f_ana = get_analytical_freqs(num_modes_text).detach().numpy()
     modes = np.arange(1, num_modes_text + 1)
 
@@ -378,7 +378,7 @@ def analysis():
     frea = fext - fvol - fsur
 
     # ==========================================
-    # [Änderung 3] Abbildung 2: Modenformen (1 ~ 7)
+    # [Änderung 3] Abbildung 2: Modenformen
     # ==========================================
     if toplot:
         omega_K_unsorted = 1.0 / torch.sqrt(vals_K.real)
@@ -393,7 +393,7 @@ def analysis():
         final_indices = valid_indices[sorted_indices]
 
         # Erste drei Modi als einzelne Figures darstellen und speichern
-        num_plot_modes = 3
+        num_plot_modes = 4
         for i in range(num_plot_modes):
             idx = final_indices[i]
             mode_shape = vecs_K[:, idx].real
@@ -412,7 +412,7 @@ def analysis():
                 plt.plot(x_mode[els, 0], x_mode[els, 1], "b-", linewidth=0.5)
             plt.axis("equal")
             plt.grid(True)
-            plt.savefig(f"modus_{i+1}_eigenform.png", dpi=300, bbox_inches="tight")
+            plt.savefig(f"{i+1} Eigenform Python.png", dpi=600, bbox_inches="tight")
         plt.show()
 
     # Optional: Vergleichsplot der Frequenzen (kann beibehalten werden)

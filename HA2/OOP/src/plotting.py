@@ -2,6 +2,8 @@
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import torch
+import time as timemodule
+import math
 from config import LENGTH, HEIGHT, WIDTH, FORCE, TOTAL_FORCE
 from src.analytics import analytical_sigma_xx_midspan
 from src.elements import get_plot_indices
@@ -24,27 +26,151 @@ def _compute_element_dofs(ndf, elem_nodes):
     return torch.tensor(local, dtype=torch.long)
 
 
-def plot_modal_analysis(frequencies):
-    """Gibt eine Tabelle der Eigenfrequenzen aus."""
-    print(f"{'='*40}")
-    print(f"{'EIGENFREQUENZEN (Hz)':^40}")
-    print(f"{'='*40}")
-    print(f"{'Mode':<10} | {'Frequenz (Hz)':<20}")
-    print("-" * 40)
+def animate_eigenmode(solver, frequencies, eigenvectors, mode_index=1, duration=5.0):
+    """Animiert die N-te Eigenmode (1-based index)."""
+    plt.ion()
     
-    for i, freq in enumerate(frequencies):
-        print(f"{i+1:<10} | {freq:.4f}")
-    print("-" * 40)
+    x = solver.mesh.x
+    elems = solver.mesh.elems
+    indices = get_plot_indices(solver.nen)
+    
+    # Rekonstruktion der vollen Vektoren
+    free_dofs = torch.nonzero(solver.mesh.free_mask)[:, 0]
+    
+    # Check index
+    idx = mode_index - 1
+    if idx < 0 or idx >= len(frequencies):
+        print(f"Mode {mode_index} nicht verfügbar.")
+        return
+
+    mode_shape = eigenvectors[:, idx].real
+    full_mode = torch.zeros(solver.nnp * solver.ndf, 1)
+    full_mode[free_dofs, 0] = mode_shape
+    u_mode = full_mode.reshape(-1, solver.ndf)
+    
+    # Automatische Skalierung
+    max_disp = torch.max(torch.abs(u_mode))
+    if max_disp > 0:
+        scale_factor = 0.2 * LENGTH / max_disp 
+    else:
+        scale_factor = 1.0
+        
+    fig = plt.figure(figsize=(10, 6))
+    ax = fig.add_subplot(111)
+    freq = frequencies[idx]
+    ax.set_title(f"Eigenmode {mode_index} ({freq:.2f} Hz) - Animiert")
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.axis("equal")
+    ax.grid(True)
+    
+    # Statische Elemente (unverformt)
+    for e in range(solver.mesh.nel):
+        els = torch.index_select(elems[e, :], 0, indices)
+        ax.plot(x[els, 0], x[els, 1], "k--", linewidth=0.2, alpha=0.5)
+        
+    # Dynamische Elemente initialisieren
+    lines = []
+    for e in range(solver.mesh.nel):
+        els = torch.index_select(elems[e, :], 0, indices)
+        line, = ax.plot([], [], 'b-', linewidth=0.5)
+        lines.append(line)
+        
+    ax.set_xlim([-0.1 * LENGTH, 1.1 * LENGTH])
+    ax.set_ylim([-5 * HEIGHT, 5 * HEIGHT])
+    
+    print(f"Starte Animation für Mode {mode_index}...")
+    
+    start_time = timemodule.perf_counter()
+    while True:
+        current_time = timemodule.perf_counter() - start_time
+        if current_time > duration:
+            break
+            
+        # Oszillation: sin(2*pi*f*t) - aber verlangsamt für Visualisierung
+        # Wir nehmen eine feste visuelle Frequenz, z.B. 1 Hz, damit man es sieht
+        factor = math.sin(2 * math.pi * 1.0 * current_time) 
+        
+        x_mode = x + u_mode * scale_factor * factor
+        
+        for i, line in enumerate(lines):
+            els = torch.index_select(elems[i, :], 0, indices)
+            line.set_data(x_mode[els, 0], x_mode[els, 1])
+            
+        plt.pause(0.01)
+        
+    plt.ioff()
+    plt.show()
 
 
-def plot_time_integration(time_history, disp_history):
-    """Plottet den Zeitverlauf der Verschiebung."""
-    plt.figure()
-    plt.plot(time_history, disp_history, "b-")
-    plt.title("Zeitverlauf der Verschiebung (u_x am Ende)")
-    plt.xlabel("Zeit [s]")
-    plt.ylabel("Verschiebung [m]")
-    plt.grid(True)
+def animate_time_integration(solver, generator, disp_scaling=1.0):
+    """Animiert die transiente Analyse."""
+    plt.ion()  # Interaktiver Modus an
+    
+    fig = plt.figure(figsize=(12, 6))
+    ax_mesh = plt.subplot(1, 2, 1)
+    ax_hist = plt.subplot(1, 2, 2)
+    
+    # Setup Mesh Plot
+    x = solver.mesh.x
+    elems = solver.mesh.elems
+    indices = get_plot_indices(solver.nen)
+    
+    # Statische Elemente plotten (unverformt als Referenz)
+    # plot_mesh(ax_mesh, solver.mesh, elems, x, indices) # Optional: Unverformtes Netz im Hintergrund
+    
+    # Dynamische Elemente initialisieren
+    lines = []
+    for e in range(solver.mesh.nel):
+        els = torch.index_select(elems[e, :], 0, indices)
+        line, = ax_mesh.plot([], [], 'b-', linewidth=0.5)
+        lines.append(line)
+        
+    ax_mesh.set_xlim([-0.1 * LENGTH, 1.1 * LENGTH])
+    ax_mesh.set_ylim([-5 * HEIGHT, 5 * HEIGHT])
+    ax_mesh.set_aspect('equal')
+    ax_mesh.set_title("Verformung (animiert)")
+    ax_mesh.grid(True)
+    
+    # Setup History Plot
+    line_hist, = ax_hist.plot([], [], 'b-')
+    ax_hist.set_title("Verschiebung u_x am Ende")
+    ax_hist.set_xlabel("Zeit [s]")
+    ax_hist.set_ylabel("Verschiebung [m]")
+    ax_hist.grid(True)
+    
+    time_data = []
+    disp_data = []
+    
+    print("Starte Animation...")
+    
+    try:
+        for step, (t, u, u_val) in enumerate(generator):
+            # Update History
+            time_data.append(t)
+            disp_data.append(u_val)
+            
+            line_hist.set_data(time_data, disp_data)
+            ax_hist.relim()
+            ax_hist.autoscale_view()
+            
+            # Update Mesh
+            u_reshaped = u.view(-1, solver.ndf)
+            x_disped = x + disp_scaling * u_reshaped
+            
+            for i, line in enumerate(lines):
+                els = torch.index_select(elems[i, :], 0, indices)
+                line.set_data(x_disped[els, 0], x_disped[els, 1])
+            
+            ax_mesh.set_title(f"Zeit: {t:.4f} s")
+            
+            plt.pause(0.001)
+            
+    except KeyboardInterrupt:
+        print("Animation abgebrochen.")
+        
+    plt.ioff() # Interaktiver Modus aus
+    plt.show() # Plot offen lassen
 
 
 def plot_results(solver, disp_scaling=50):
