@@ -646,7 +646,7 @@ def analysis():
     time_intervall = .1 # total time of simulation
     steps = 45000
     # print("K_tilde size:", K_tilde.size())
-    beta = 0.0001
+    beta = 0
     gamma = 0.5
     dt = time_intervall / steps
     print(f"Aktuelle Schrittweite: {dt}")
@@ -660,7 +660,7 @@ def analysis():
     v_0 = torch.zeros_like(u_0) # initial velocity zero
     a_0 = torch.linalg.inv(M).mm((fsur - K.mm(u_0)))
     # fsur are the external forces applied at the nodes (neum_vals) (f_ext in the equation)
-    if beta >= 0.25:
+    if beta >= 0.1:
 
         K_eff = K_tilde + 1/(beta*dt*dt) * M
         # x_disped are the displaced coordinates after static analysis in form of tensor [nnp x ndm]
