@@ -6,7 +6,7 @@ import math
 import time as timemodule
 
 torch.set_default_dtype(torch.float64)
-torch.set_num_threads(18)
+torch.set_num_threads(16)
 
 disp_scaling = 1000
 toplot = True
