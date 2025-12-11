@@ -27,12 +27,11 @@ from src.material import IsotropicMaterial
 from src.mesh import Mesh
 from src.solver import FEMSolver
 import matplotlib.pyplot as plt
-from src.plotting import plot_results, plot_modal_analysis, plot_time_integration
+from src.plotting import plot_results, animate_eigenmode
+
 
 
 if __name__ == "__main__":
-    start_time = timemodule.perf_counter()
-
     # Setup
     print(f"Setup Geometry (Q8={USE_Q8})...")
     coords, elems = create_geometry(LENGTH, HEIGHT, nx=NX, ny=NY, use_q8=USE_Q8)
@@ -48,30 +47,60 @@ if __name__ == "__main__":
 
     # Run Static Analysis
     print("Run Static Analysis...")
+    t_start = timemodule.perf_counter()
     solver.run()
+    t_end = timemodule.perf_counter()
+    print(f"Static Analysis Time: {t_end - t_start:.4f}s")
 
     # Run Modal Analysis
     print("Run Modal Analysis...")
-    frequencies = solver.modal_analysis(num_modes=ANZAHL_MODEN, f_threshold=F_THRESHOLD)
-    plot_modal_analysis(frequencies)
+    t_start = timemodule.perf_counter()
+    frequencies, eigenvectors = solver.modal_analysis(num_modes=ANZAHL_MODEN, f_threshold=F_THRESHOLD)
+    t_end = timemodule.perf_counter()
+    print(f"Modal Analysis Time: {t_end - t_start:.4f}s")
+    
+    # Tabelle ausgeben (optional, da plot_eigenmodes auch plottet)
+    print(f"{'='*40}")
+    print(f"{'EIGENFREQUENZEN (Hz)':^40}")
+    print(f"{'='*40}")
+    print(f"{'Mode':<10} | {'Frequenz (Hz)':<20}")
+    print("-" * 40)
+    for i, freq in enumerate(frequencies):
+        print(f"{i+1:<10} | {freq:.4f}")
+    print("-" * 40)
+
+    if TOPLOT:
+        from src.plotting import animate_eigenmode
+        from config import PLOT_MODE_INDEX
+        animate_eigenmode(solver, frequencies, eigenvectors, mode_index=PLOT_MODE_INDEX)
 
     # Run Transient Analysis (Optional)
     if RUN_TRANSIENT:
         print("Run Transient Analysis...")
-        time_hist, disp_hist = solver.newmark_time_integration(
+        # Erstelle Generator
+        gen = solver.newmark_time_integration(
             beta=NEWMARK_BETA, 
             gamma=NEWMARK_GAMMA, 
             dt=TIME_INTERVAL/TIME_STEPS, 
             steps=TIME_STEPS,
             disp_scaling=DISP_SCALING
         )
+        
+        t_start = timemodule.perf_counter()
         if TOPLOT:
-            plot_time_integration(time_hist, disp_hist)
+            from src.plotting import animate_time_integration
+            # Animation verbraucht Zeit, die nicht zur reinen Berechnung gehört,
+            # aber hier ist Berechnung und Plotting gekoppelt durch den Generator.
+            # Wir messen die Zeit für den gesamten Animations-Loop.
+            animate_time_integration(solver, gen, disp_scaling=DISP_SCALING)
+        else:
+            # Falls kein Plot gewünscht, Generator einfach durchlaufen lassen (reine Rechenzeit)
+            for _ in gen:
+                pass
+        t_end = timemodule.perf_counter()
+        print(f"Transient Analysis (incl. Animation if enabled) Time: {t_end - t_start:.4f}s")
 
     if TOPLOT:
         print("Plotting Results...")
         plot_results(solver, disp_scaling=DISP_SCALING)
         plt.show()
-
-    end_time = timemodule.perf_counter()
-    print(f"Elapsed time: {end_time - start_time:.4f}s")

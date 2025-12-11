@@ -2,7 +2,7 @@ import torch
 
 # Threading and dtype
 DEFAULT_DTYPE = torch.float64
-TORCH_THREADS = 4
+TORCH_THREADS = 18
 torch.set_default_dtype(DEFAULT_DTYPE)
 torch.set_num_threads(TORCH_THREADS)
 
@@ -38,11 +38,12 @@ TOTAL_FORCE = FORCE / WIDTH  # N/m on the boundary (consistent with original)
 # Modal Analysis Parameters
 ANZAHL_MODEN = 10  # Number of modes to display
 F_THRESHOLD = 0.001  # Hz, threshold for zero frequencies
+PLOT_MODE_INDEX = 4 # Which mode to plot (1-based index)
 
 # Newmark Time Integration Parameters
-RUN_TRANSIENT = False  # Set to True to run transient analysis
-TIME_INTERVAL = 0.01  # Total time of simulation in seconds
-TIME_STEPS = 40  # Number of time steps
+RUN_TRANSIENT = True  # Set to True to run transient analysis
+TIME_INTERVAL = 0.1  # Total time of simulation in seconds
+TIME_STEPS = 100  # Number of time steps
 NEWMARK_BETA = 0.25  # Newmark beta parameter
 NEWMARK_GAMMA = 0.5  # Newmark gamma parameter
 
